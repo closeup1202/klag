@@ -1,9 +1,9 @@
 import { collectLag } from './src/collector/lagCollector.js'
-import { inspect } from 'util'
+import { printLagTable } from './src/reporter/tableReporter.js'
 
 const snapshot = await collectLag({
   broker: 'localhost:9092',
   groupId: 'my-service',
 })
 
-console.log(inspect(snapshot, { depth: null, colors: true }))
+printLagTable(snapshot)
