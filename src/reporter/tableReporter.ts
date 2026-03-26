@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import Table from 'cli-table3'
-import type { LagSnapshot, RcaResult } from '../types/index.js'
+import type { HorizontalAlignment } from 'cli-table3'
+import type { LagSnapshot, RcaResult, RateSnapshot } from '../types/index.js'
 import { classifyLag } from '../types/index.js'
 
 const LEVEL_ICON: Record<string, string> = {
@@ -13,6 +14,10 @@ function formatLag(lag: bigint): string {
   return lag.toLocaleString()
 }
 
+function formatRate(rate: number): string {
+  return rate < 0.1 ? '0' : `${rate.toFixed(1)} msg/s`
+}
+
 function groupStatus(totalLag: bigint): string {
   const level = classifyLag(totalLag)
   if (level === 'OK')   return chalk.green('✅ OK')
@@ -20,7 +25,11 @@ function groupStatus(totalLag: bigint): string {
   return chalk.red('🚨 CRITICAL')
 }
 
-export function printLagTable(snapshot: LagSnapshot, rcaResults: RcaResult[] = []): void {
+export function printLagTable(
+  snapshot: LagSnapshot,
+  rcaResults: RcaResult[] = [],
+  rateSnapshot?: RateSnapshot
+): void {
   const { groupId, broker, collectedAt, partitions, totalLag } = snapshot
 
   // ── 헤더 ──────────────────────────────────────────────────────
@@ -39,16 +48,35 @@ export function printLagTable(snapshot: LagSnapshot, rcaResults: RcaResult[] = [
   console.log('')
 
   // ── 파티션별 테이블 ────────────────────────────────────────────
+  // rateSnapshot이 있으면 rate 컬럼 추가
+  const hasRate = !!rateSnapshot && rateSnapshot.partitions.length > 0
+
+  // rate를 빠르게 찾기 위한 Map 구성
+  const rateMap = new Map<string, { produceRate: number; consumeRate: number }>()
+  if (hasRate) {
+    for (const r of rateSnapshot!.partitions) {
+      rateMap.set(`${r.topic}-${r.partition}`, r)
+    }
+  }
+
+  const head = [
+    chalk.bold('Topic'),
+    chalk.bold('Partition'),
+    chalk.bold('Committed Offset'),
+    chalk.bold('Log-End Offset'),
+    chalk.bold('Lag'),
+    chalk.bold('Status'),
+    ...(hasRate
+      ? [chalk.bold('Produce Rate'), chalk.bold('Consume Rate')]
+      : []),
+  ]
+
   const table = new Table({
-    head: [
-      chalk.bold('Topic'),
-      chalk.bold('Partition'),
-      chalk.bold('Committed Offset'),
-      chalk.bold('Log-End Offset'),
-      chalk.bold('Lag'),
-      chalk.bold('Status'),
-    ],
-    colAligns: ['left', 'right', 'right', 'right', 'right', 'center'],
+    head,
+    colAligns: [
+      'left', 'right', 'right', 'right', 'right', 'center',
+      ...(hasRate ? ['right', 'right'] : []),
+    ] as HorizontalAlignment[],
     style: { head: [], border: ['grey'] },
   })
 
@@ -60,6 +88,14 @@ export function printLagTable(snapshot: LagSnapshot, rcaResults: RcaResult[] = [
         ? chalk.yellow(formatLag(p.lag))
         : chalk.green(formatLag(p.lag))
 
+    const rateEntry = rateMap.get(`${p.topic}-${p.partition}`)
+    const rateColumns = hasRate
+      ? [
+          chalk.yellow(formatRate(rateEntry?.produceRate ?? 0)),
+          chalk.cyan(formatRate(rateEntry?.consumeRate ?? 0)),
+        ]
+      : []
+
     table.push([
       p.topic,
       String(p.partition),
@@ -67,6 +103,7 @@ export function printLagTable(snapshot: LagSnapshot, rcaResults: RcaResult[] = [
       formatLag(p.logEndOffset),
       lagStr,
       LEVEL_ICON[level],
+      ...rateColumns,
     ])
   }
 

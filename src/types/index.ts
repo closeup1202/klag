@@ -2,6 +2,7 @@
 export interface KafkaOptions {
   broker: string
   groupId: string
+  intervalMs?: number  // 샘플링 간격 (기본 5000ms)
 }
 
 // ─── 파티션별 Lag 정보 ────────────────────────────────────────────
@@ -23,6 +24,20 @@ export interface LagSnapshot {
   totalLag: bigint
 }
 
+// ─── 파티션별 Rate 정보 ───────────────────────────────────────────
+export interface PartitionRate {
+  topic: string
+  partition: number
+  produceRate: number   // msg/s — broker에 쌓이는 속도
+  consumeRate: number   // msg/s — consumer가 처리하는 속도
+}
+
+// ─── Rate 샘플링 결과 ─────────────────────────────────────────────
+export interface RateSnapshot {
+  intervalMs: number          // 실제 샘플링 간격
+  partitions: PartitionRate[]
+}
+
 // ─── Lag 수준 등급 ────────────────────────────────────────────────
 export type LagLevel = 'OK' | 'WARN' | 'HIGH'
 
@@ -33,18 +48,18 @@ export function classifyLag(lag: bigint): LagLevel {
 }
 
 // ─── RCA 분석 결과 ────────────────────────────────────────────────
-export type RcaType = 'HOT_PARTITION' | 'NONE'
+export type RcaType = 'HOT_PARTITION' | 'PRODUCER_BURST' | 'NONE'
 
 export interface RcaResult {
   type: RcaType
   topic: string
-  description: string   // 상황 설명
-  suggestion: string    // 개선 제안
+  description: string
+  suggestion: string
   details: HotPartitionDetail[]
 }
 
 export interface HotPartitionDetail {
   partition: number
   lag: bigint
-  ratio: number  // 0~1
+  ratio: number
 }
