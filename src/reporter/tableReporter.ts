@@ -32,6 +32,17 @@ export function printLagTable(
   watchMode = false
 ): void {
   const { groupId, broker, collectedAt, partitions, totalLag } = snapshot
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const localTime = collectedAt.toLocaleString('sv-SE', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).replace('T', ' ')
 
   // ── 헤더 ──────────────────────────────────────────────────────
   if (!watchMode) {
@@ -41,7 +52,7 @@ export function printLagTable(
   }
   console.log(chalk.bold('🔍 Consumer Group: ') + chalk.white(groupId))
   console.log(chalk.bold('   Broker:         ') + chalk.white(broker))
-  console.log(chalk.bold('   Collected At:   ') + chalk.gray(collectedAt.toISOString()))
+  console.log(chalk.bold('   Collected At:   ') + chalk.gray(`${localTime} (${tz})`))
   console.log('')
 
   // ── Group 상태 요약 ────────────────────────────────────────────
