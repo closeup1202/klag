@@ -28,14 +28,17 @@ function groupStatus(totalLag: bigint): string {
 export function printLagTable(
   snapshot: LagSnapshot,
   rcaResults: RcaResult[] = [],
-  rateSnapshot?: RateSnapshot
+  rateSnapshot?: RateSnapshot,
+  watchMode = false
 ): void {
   const { groupId, broker, collectedAt, partitions, totalLag } = snapshot
 
   // ── 헤더 ──────────────────────────────────────────────────────
-  console.log('')
-  console.log(chalk.bold.cyan('⚡ kafka-why') + chalk.gray('  v0.1.0'))
-  console.log('')
+  if (!watchMode) {
+    console.log('')
+    console.log(chalk.bold.cyan('⚡ kafka-why') + chalk.gray('  v0.1.0'))
+    console.log('')
+  }
   console.log(chalk.bold('🔍 Consumer Group: ') + chalk.white(groupId))
   console.log(chalk.bold('   Broker:         ') + chalk.white(broker))
   console.log(chalk.bold('   Collected At:   ') + chalk.gray(collectedAt.toISOString()))

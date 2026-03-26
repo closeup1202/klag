@@ -6,6 +6,7 @@ import { collectLag } from '../collector/lagCollector.js'
 import { collectRate } from '../collector/rateCollector.js'
 import { printLagTable } from '../reporter/tableReporter.js'
 import { analyze } from '../analyzer/index.js'
+import { startWatch } from './watcher.js'
 
 const program = new Command()
 
@@ -16,33 +17,37 @@ program
   .requiredOption('-b, --broker <host:port>', 'Kafka broker address', 'localhost:9092')
   .requiredOption('-g, --group <groupId>', 'Consumer group ID')
   .option('-i, --interval <ms>', 'Rate sampling interval in ms', '5000')
+  .option('-w, --watch', 'Watch mode — refresh every interval')
   .option('--no-rate', 'Skip rate sampling (faster, no PRODUCER_BURST detection)')
   .option('--json', 'Output raw JSON instead of table')
   .action(async (options) => {
     try {
-      process.stdout.write(chalk.gray('  Connecting to broker...'))
-
-      // ── lag 수집 ───────────────────────────────────────────────
-      const snapshot = await collectLag({
+      const kafkaOptions = {
         broker: options.broker,
         groupId: options.group,
-      })
+        intervalMs: parseInt(options.interval, 10),
+      }
+
+      // ── watch 모드 ─────────────────────────────────────────────
+      if (options.watch) {
+        await startWatch(kafkaOptions, options.rate === false)
+        return
+      }
+
+      // ── 일반 모드 ──────────────────────────────────────────────
+      process.stdout.write(chalk.gray('  Connecting to broker...'))
+
+      const snapshot = await collectLag(kafkaOptions)
 
       process.stdout.write('\r' + ' '.repeat(50) + '\r')
 
-      // ── rate 수집 (--no-rate 플래그 없을 때만) ─────────────────
       let rateSnapshot = undefined
       if (options.rate !== false) {
-        rateSnapshot = await collectRate({
-          broker: options.broker,
-          groupId: options.group,
-          intervalMs: parseInt(options.interval, 10),
-        })
+        rateSnapshot = await collectRate(kafkaOptions)
       }
 
       process.stdout.write('\r' + ' '.repeat(50) + '\r')
 
-      // ── 분석 실행 ──────────────────────────────────────────────
       const rcaResults = analyze(snapshot, rateSnapshot)
 
       if (options.json) {
