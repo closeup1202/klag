@@ -4,6 +4,7 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import { collectLag } from '../collector/lagCollector.js'
 import { printLagTable } from '../reporter/tableReporter.js'
+import { analyze } from '../analyzer/index.js'
 
 const program = new Command()
 
@@ -26,8 +27,10 @@ program
       // 로딩 메시지 지우기
       process.stdout.write('\r' + ' '.repeat(40) + '\r')
 
+      // ── 분석 실행 ──────────────────────────────────────────────
+      const rcaResults = analyze(snapshot)
+
       if (options.json) {
-        // BigInt는 JSON.stringify 기본 지원 안 되므로 string 변환
         const serializable = {
           ...snapshot,
           totalLag: snapshot.totalLag.toString(),
@@ -37,10 +40,11 @@ program
             logEndOffset: p.logEndOffset.toString(),
             committedOffset: p.committedOffset.toString(),
           })),
+          rca: rcaResults,  // RCA 결과도 JSON에 포함
         }
         console.log(JSON.stringify(serializable, null, 2))
       } else {
-        printLagTable(snapshot)
+        printLagTable(snapshot, rcaResults)  // rcaResults 전달
       }
 
       process.exit(0)
@@ -49,7 +53,6 @@ program
       const message = err instanceof Error ? err.message : String(err)
       console.error(chalk.red(`\n❌ Error: ${message}\n`))
 
-      // 연결 실패 시 힌트 제공
       if (message.includes('ECONNREFUSED') || message.includes('ETIMEDOUT')) {
         console.error(chalk.yellow('💡 Broker에 연결할 수 없어요. 아래를 확인해보세요:'))
         console.error(chalk.gray(`   • Kafka가 실행 중인지 확인: docker ps`))

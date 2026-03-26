@@ -11,6 +11,7 @@ export interface PartitionLag {
   logEndOffset: bigint   // broker의 최신 offset
   committedOffset: bigint // consumer가 커밋한 offset
   lag: bigint
+  lagRatio?: number // 전체 lag 중 이 파티션이 차지하는 비율 (0~1)
 }
 
 // ─── Consumer Group 전체 Lag 수집 결과 ───────────────────────────
@@ -29,4 +30,21 @@ export function classifyLag(lag: bigint): LagLevel {
   if (lag < 100n) return 'OK'
   if (lag < 1000n) return 'WARN'
   return 'HIGH'
+}
+
+// ─── RCA 분석 결과 ────────────────────────────────────────────────
+export type RcaType = 'HOT_PARTITION' | 'NONE'
+
+export interface RcaResult {
+  type: RcaType
+  topic: string
+  description: string   // 상황 설명
+  suggestion: string    // 개선 제안
+  details: HotPartitionDetail[]
+}
+
+export interface HotPartitionDetail {
+  partition: number
+  lag: bigint
+  ratio: number  // 0~1
 }

@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import Table from 'cli-table3'
-import type { LagSnapshot } from '../types/index.js'
+import type { LagSnapshot, RcaResult } from '../types/index.js'
 import { classifyLag } from '../types/index.js'
 
 const LEVEL_ICON: Record<string, string> = {
@@ -20,7 +20,7 @@ function groupStatus(totalLag: bigint): string {
   return chalk.red('🚨 CRITICAL')
 }
 
-export function printLagTable(snapshot: LagSnapshot): void {
+export function printLagTable(snapshot: LagSnapshot, rcaResults: RcaResult[] = []): void {
   const { groupId, broker, collectedAt, partitions, totalLag } = snapshot
 
   // ── 헤더 ──────────────────────────────────────────────────────
@@ -72,4 +72,18 @@ export function printLagTable(snapshot: LagSnapshot): void {
 
   console.log(table.toString())
   console.log('')
+
+  // ── RCA 섹션 ──────────────────────────────────────────────────
+  if (rcaResults.length === 0) return
+
+  console.log(chalk.bold('🔎 Root Cause Analysis'))
+  console.log('')
+
+  for (const rca of rcaResults) {
+    const typeLabel = chalk.bold.yellow(`   [${rca.type}]`) + ' ' + chalk.white(rca.topic)
+    console.log(typeLabel)
+    console.log(chalk.gray(`   → ${rca.description}`))
+    console.log(chalk.cyan(`   → 제안: ${rca.suggestion}`))
+    console.log('')
+  }
 }
