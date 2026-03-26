@@ -1,38 +1,13 @@
 process.removeAllListeners('warning')
 
-import { Command, InvalidArgumentError } from 'commander'
+import { Command } from 'commander'
 import chalk from 'chalk'
+import { parseInterval, parseBroker, parseTimeout } from './validators.js'
 import { collectLag } from '../collector/lagCollector.js'
 import { collectRate } from '../collector/rateCollector.js'
 import { printLagTable } from '../reporter/tableReporter.js'
 import { analyze } from '../analyzer/index.js'
 import { startWatch } from './watcher.js'
-
-// ── 커스텀 파서 ───────────────────────────────────────────────────
-function parseInterval(value: string): number {
-  const parsed = parseInt(value, 10)
-  if (isNaN(parsed) || parsed < 1000) {
-    throw new InvalidArgumentError('--interval 은 1000ms 이상의 숫자여야 해요.')
-  }
-  return parsed
-}
-
-function parseBroker(value: string): string {
-  const pattern = /^.+:\d+$/
-  if (!pattern.test(value)) {
-    throw new InvalidArgumentError('--broker 형식이 올바르지 않아요. 예: localhost:9092')
-  }
-  return value
-}
-
-// 커스텀 파서에 추가
-function parseTimeout(value: string): number {
-  const parsed = parseInt(value, 10)
-  if (isNaN(parsed) || parsed < 1000) {
-    throw new InvalidArgumentError('--timeout 은 1000ms 이상의 숫자여야 해요.')
-  }
-  return parsed
-}
 
 const program = new Command()
 
@@ -56,13 +31,13 @@ program
         timeoutMs: options.timeout,
       }
 
-      // ── watch 모드 ─────────────────────────────────────────────
+      // ── watch mode ─────────────────────────────────────────────
       if (options.watch) {
         await startWatch(kafkaOptions, options.rate === false)
         return
       }
 
-      // ── 일반 모드 ──────────────────────────────────────────────
+      // ── general mode ──────────────────────────────────────────────
       process.stdout.write(chalk.gray('  Connecting to broker...'))
 
       const snapshot = await collectLag(kafkaOptions)
@@ -101,6 +76,7 @@ program
       process.stdout.write('\r' + ' '.repeat(50) + '\r')
       const message = err instanceof Error ? err.message : String(err)
 
+      // No Broker
       if (
         message.includes('ECONNREFUSED') ||
         message.includes('ETIMEDOUT') ||
@@ -116,7 +92,7 @@ program
         process.exit(1)
       }
 
-      // group 없음
+      // No group
       if (message.includes('not found') || message.includes('Dead state')) {
         console.error(chalk.red(`\n❌ Consumer group을 찾을 수 없어요\n`))
         console.error(chalk.yellow('   확인해보세요:'))
