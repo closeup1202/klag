@@ -20,6 +20,11 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
     clientId: 'kafka-why-rate',
     brokers: [options.broker],
     logLevel: logLevel.NOTHING,
+    requestTimeout: 5000,      // 추가 — 요청 타임아웃 5초
+    connectionTimeout: 3000,   // 추가 — 연결 타임아웃 3초
+    retry: {
+      retries: 1,              // 추가 — 재시도 1번만 (기본 5번)
+    },
   })
 
   const admin = kafka.admin()
