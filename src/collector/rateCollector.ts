@@ -2,12 +2,12 @@ import { Kafka, logLevel } from 'kafkajs'
 import type { KafkaOptions, RateSnapshot, PartitionRate } from '../types/index.js'
 
 /**
- * 2번 샘플링으로 파티션별 produce/consume rate 계산
+ * Calculate per-partition produce/consume rate via two samples
  *
- * 동작 원리:
- *  t=0s  → snapshot1: logEndOffset, committedOffset 수집
- *  N초 대기
- *  t=Ns  → snapshot2: logEndOffset, committedOffset 수집
+ * How it works:
+ *  t=0s  → snapshot1: collect logEndOffset, committedOffset
+ *  wait N seconds
+ *  t=Ns  → snapshot2: collect logEndOffset, committedOffset
  *
  *  produceRate = (logEnd2 - logEnd1) / intervalSec      (msg/s)
  *  consumeRate = (committed2 - committed1) / intervalSec (msg/s)
@@ -23,7 +23,7 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
     requestTimeout: options.timeoutMs ?? 5000,
     connectionTimeout: options.timeoutMs ?? 3000,
     retry: {
-      retries: 1,              // 추가 — 재시도 1번만 (기본 5번)
+      retries: 1,              // Added — only 1 retry (default is 5)
     },
   })
 
@@ -32,7 +32,7 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
   try {
     await admin.connect()
 
-    // ── 공통: topic 목록 조회 ──────────────────────────────────────
+    // ── Fetch topic list ──────────────────────────────────────────
     const committedRaw = await admin.fetchOffsets({
       groupId: options.groupId,
     })
@@ -43,17 +43,17 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
       return { intervalMs, partitions: [] }
     }
 
-    // ── snapshot1 수집 ─────────────────────────────────────────────
+    // ── Collect snapshot1 ─────────────────────────────────────────
     const logEnd1 = await fetchLogEndOffsets(admin, topics)
     const committed1 = buildCommittedMap(committedRaw)
 
-    // ── N초 대기 ──────────────────────────────────────────────────
+    // ── Wait N seconds ────────────────────────────────────────────
     process.stdout.write(
       `\r  Sampling rates... (waiting ${intervalSec}s)   `
     )
     await sleep(intervalMs)
 
-    // ── snapshot2 수집 ─────────────────────────────────────────────
+    // ── Collect snapshot2 ─────────────────────────────────────────
     const committedRaw2 = await admin.fetchOffsets({
       groupId: options.groupId,
     })
@@ -62,7 +62,7 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
 
     process.stdout.write('\r' + ' '.repeat(50) + '\r')
 
-    // ── rate 계산 ──────────────────────────────────────────────────
+    // ── Calculate rates ───────────────────────────────────────────
     const partitions: PartitionRate[] = []
 
     for (const topic of topics) {
@@ -86,7 +86,7 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
       }
     }
 
-    // topic → partition 순 정렬
+    // Sort by topic → partition
     partitions.sort(
       (a, b) => a.topic.localeCompare(b.topic) || a.partition - b.partition
     )
@@ -97,7 +97,7 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
   }
 }
 
-// ── 헬퍼 함수들 ───────────────────────────────────────────────────
+// ── Helper functions ──────────────────────────────────────────────
 
 async function fetchLogEndOffsets(
   admin: ReturnType<InstanceType<typeof Kafka>['admin']>,
@@ -136,14 +136,14 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-/* 
-핵심 포인트:
+/*
+Key points:
 
-snapshot1 → 5초 대기 → snapshot2
+snapshot1 → wait 5s → snapshot2
 
-produceRate = (logEnd2 - logEnd1) / 5     → broker에 쌓이는 속도
-consumeRate = (committed2 - committed1) / 5 → consumer 처리 속도
+produceRate = (logEnd2 - logEnd1) / 5      → rate at which messages accumulate on the broker
+consumeRate = (committed2 - committed1) / 5 → rate at which the consumer processes messages
 
 produceRate 200 msg/s, consumeRate 50 msg/s
-→ consumer가 따라가지 못함 → lag 계속 증가 
+→ consumer cannot keep up → lag keeps growing
 */

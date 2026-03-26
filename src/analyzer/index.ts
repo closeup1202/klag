@@ -3,25 +3,25 @@ import { detectHotPartition } from './hotPartitionDetector.js'
 import { detectProducerBurst } from './burstDetector.js'
 
 /**
- * 분석 오케스트레이터
+ * Analysis orchestrator
  *
  * Week 2: HOT_PARTITION
- * Week 3: PRODUCER_BURST  ← 추가
- * Week 5: SLOW_CONSUMER, REBALANCE (예정)
+ * Week 3: PRODUCER_BURST  ← added
+ * Week 5: SLOW_CONSUMER, REBALANCE (planned)
  */
 export function analyze(
   snapshot: LagSnapshot,
-  rateSnapshot?: RateSnapshot  // optional — rate 수집 안 했을 때도 동작
+  rateSnapshot?: RateSnapshot  // optional — also works when rate was not collected
 ): RcaResult[] {
   const results: RcaResult[] = []
 
-  // ── Producer Burst 감지 ───────────────────────────────────────
+  // ── Detect Producer Burst ─────────────────────────────────────
   if (rateSnapshot) {
     const burst = detectProducerBurst(snapshot, rateSnapshot)
     if (burst) results.push(burst)
   }
 
-  // ── Hot Partition 감지 ────────────────────────────────────────
+  // ── Detect Hot Partition ──────────────────────────────────────
   const hotPartition = detectHotPartition(snapshot)
   if (hotPartition) results.push(hotPartition)
 

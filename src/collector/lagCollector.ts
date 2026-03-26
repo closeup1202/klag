@@ -2,23 +2,23 @@ import { Kafka, logLevel, AssignerProtocol } from 'kafkajs'
 import type { KafkaOptions, LagSnapshot, PartitionLag } from '../types/index.js'
 
 /**
- * Kafka AdminClient를 사용해 consumer group의 파티션별 lag을 수집
+ * Collects per-partition lag for a consumer group using Kafka AdminClient
  *
- * 동작 원리:
- *  1. describeGroups  → consumer group이 구독 중인 topic/partition 목록 파악
- *  2. fetchOffsets    → consumer가 마지막으로 커밋한 offset (committedOffset)
- *  3. fetchTopicOffsets → broker의 최신 offset (logEndOffset)
+ * How it works:
+ *  1. describeGroups     → get the list of topics/partitions subscribed by the consumer group
+ *  2. fetchOffsets       → last committed offset by the consumer (committedOffset)
+ *  3. fetchTopicOffsets  → latest offset on the broker (logEndOffset)
  *  4. lag = logEndOffset - committedOffset
  */
 export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
   const kafka = new Kafka({
     clientId: 'kafka-why',
     brokers: [options.broker],
-    logLevel: logLevel.NOTHING, // CLI에서 kafkajs 내부 로그 숨김
+    logLevel: logLevel.NOTHING, // Hide kafkajs internal logs in CLI
     requestTimeout: options.timeoutMs ?? 5000,
     connectionTimeout: options.timeoutMs ?? 3000,
     retry: {
-      retries: 1,              // 추가 — 재시도 1번만 (기본 5번)
+      retries: 1,              // Added — only 1 retry (default is 5)
     },
   })
 
@@ -27,7 +27,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
   try {
     await admin.connect()
 
-    // ── 1. consumer group이 구독 중인 topic/partition 파악 ────────
+    // ── 1. Determine subscribed topics/partitions of consumer group ──
     const groupDescription = await admin.describeGroups([options.groupId])
     const group = groupDescription.groups[0]
 
@@ -39,7 +39,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       throw new Error(`Consumer group "${options.groupId}" is in Dead state`)
     }
 
-    // member들의 topic/partition 할당 정보 수집
+    // Collect topic/partition assignment info for all members
     const topicPartitionMap = new Map<string, Set<number>>()
 
     for (const member of group.members) {
@@ -58,7 +58,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       }
     }
 
-    // ── 2. committed offset 조회 ──────────────────────────────────
+    // ── 2. Fetch committed offsets ────────────────────────────────
     const topicNames = [...topicPartitionMap.keys()]
 
     const committedOffsets = await admin.fetchOffsets({
@@ -66,7 +66,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       topics: topicNames.length > 0 ? topicNames : undefined,
     })
 
-    // group이 Empty 상태일 때 fetchOffsets 결과로 topic/partition 보완
+    // Supplement topic/partition data from fetchOffsets when group is in Empty state
     for (const topicOffset of committedOffsets) {
       if (!topicPartitionMap.has(topicOffset.topic)) {
         topicPartitionMap.set(topicOffset.topic, new Set())
@@ -76,7 +76,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       }
     }
 
-    // ── 3. log-end offset (broker 최신 offset) 조회 ───────────────
+    // ── 3. Fetch log-end offsets (latest broker offset) ───────────
     const logEndOffsetMap = new Map<string, Map<number, bigint>>()
 
     for (const [topic] of topicPartitionMap) {
@@ -88,20 +88,20 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       logEndOffsetMap.set(topic, partitionMap)
     }
 
-    // committedOffset Map 구성
+    // Build committedOffset map
     const committedOffsetMap = new Map<string, Map<number, bigint>>()
-    
+
     for (const topicOffset of committedOffsets) {
       const partitionMap = new Map<number, bigint>()
       for (const p of topicOffset.partitions) {
-        // -1은 아직 커밋된 offset이 없음 → 0으로 처리
+        // -1 means no offset committed yet → treat as 0
         const offset = p.offset === '-1' ? 0n : BigInt(p.offset)
         partitionMap.set(p.partition, offset)
       }
       committedOffsetMap.set(topicOffset.topic, partitionMap)
     }
 
-    // ── 4. 파티션별 lag 계산 ──────────────────────────────────────
+    // ── 4. Calculate per-partition lag ────────────────────────────
     const partitions: PartitionLag[] = []
 
     for (const [topic, partitionSet] of topicPartitionMap) {
@@ -120,7 +120,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       }
     }
 
-    // topic → partition 번호 순 정렬
+    // Sort by topic → partition number
     partitions.sort(
       (a, b) => a.topic.localeCompare(b.topic) || a.partition - b.partition
     )
@@ -135,7 +135,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       totalLag,
     }
   } finally {
-    // 성공/실패 상관없이 항상 연결 해제
+    // Always disconnect regardless of success or failure
     await admin.disconnect()
   }
 }

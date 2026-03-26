@@ -2,59 +2,59 @@ import { describe, it, expect } from 'vitest'
 import { parseInterval, parseBroker, parseTimeout } from '../src/cli/validators.js'
 
 describe('parseInterval', () => {
-  it('유효한 숫자면 그대로 반환', () => {
+  it('returns value as-is for valid number', () => {
     expect(parseInterval('5000')).toBe(5000)
     expect(parseInterval('1000')).toBe(1000)
     expect(parseInterval('10000')).toBe(10000)
   })
 
-  it('숫자가 아니면 에러', () => {
-    expect(() => parseInterval('abc')).toThrow('1000ms 이상의 숫자')
-    expect(() => parseInterval('')).toThrow('1000ms 이상의 숫자')
-    expect(() => parseInterval('1.5')).toThrow('1000ms 이상의 숫자')
+  it('throws error for non-numeric input', () => {
+    expect(() => parseInterval('abc')).toThrow('>= 1000ms')
+    expect(() => parseInterval('')).toThrow('>= 1000ms')
+    expect(() => parseInterval('1.5')).toThrow('>= 1000ms')
   })
 
-  it('1000ms 미만이면 에러', () => {
-    expect(() => parseInterval('999')).toThrow('1000ms 이상의 숫자')
-    expect(() => parseInterval('500')).toThrow('1000ms 이상의 숫자')
-    expect(() => parseInterval('0')).toThrow('1000ms 이상의 숫자')
+  it('throws error if below 1000ms', () => {
+    expect(() => parseInterval('999')).toThrow('>= 1000ms')
+    expect(() => parseInterval('500')).toThrow('>= 1000ms')
+    expect(() => parseInterval('0')).toThrow('>= 1000ms')
   })
 })
 
 describe('parseBroker', () => {
-  it('올바른 host:port 형식이면 그대로 반환', () => {
+  it('returns value as-is for valid host:port format', () => {
     expect(parseBroker('localhost:9092')).toBe('localhost:9092')
     expect(parseBroker('kafka.example.com:9092')).toBe('kafka.example.com:9092')
     expect(parseBroker('192.168.0.1:9092')).toBe('192.168.0.1:9092')
   })
 
-  it('port 없으면 에러', () => {
-    expect(() => parseBroker('localhost')).toThrow('형식이 올바르지 않아요')
-    expect(() => parseBroker('kafka.example.com')).toThrow('형식이 올바르지 않아요')
+  it('throws error if port is missing', () => {
+    expect(() => parseBroker('localhost')).toThrow('format is invalid')
+    expect(() => parseBroker('kafka.example.com')).toThrow('format is invalid')
   })
 
-  it('빈 문자열이면 에러', () => {
-    expect(() => parseBroker('')).toThrow('형식이 올바르지 않아요')
+  it('throws error for empty string', () => {
+    expect(() => parseBroker('')).toThrow('format is invalid')
   })
 
-  it('포트가 숫자가 아니면 에러', () => {
-    expect(() => parseBroker('localhost:abc')).toThrow('형식이 올바르지 않아요')
+  it('throws error if port is not numeric', () => {
+    expect(() => parseBroker('localhost:abc')).toThrow('format is invalid')
   })
 })
 
 describe('parseTimeout', () => {
-  it('유효한 숫자면 그대로 반환', () => {
+  it('returns value as-is for valid number', () => {
     expect(parseTimeout('3000')).toBe(3000)
     expect(parseTimeout('1000')).toBe(1000)
   })
 
-  it('숫자가 아니면 에러', () => {
-    expect(() => parseTimeout('abc')).toThrow('1000ms 이상의 숫자')
-    expect(() => parseTimeout('')).toThrow('1000ms 이상의 숫자')
+  it('throws error for non-numeric input', () => {
+    expect(() => parseTimeout('abc')).toThrow('>= 1000ms')
+    expect(() => parseTimeout('')).toThrow('>= 1000ms')
   })
 
-  it('1000ms 미만이면 에러', () => {
-    expect(() => parseTimeout('999')).toThrow('1000ms 이상의 숫자')
-    expect(() => parseTimeout('0')).toThrow('1000ms 이상의 숫자')
+  it('throws error if below 1000ms', () => {
+    expect(() => parseTimeout('999')).toThrow('>= 1000ms')
+    expect(() => parseTimeout('0')).toThrow('>= 1000ms')
   })
 })

@@ -30,26 +30,26 @@ function makeRateSnapshot(produceRate: number, consumeRate: number): RateSnapsho
 }
 
 describe('detectProducerBurst', () => {
-  it('partitions가 비어있으면 null 반환', () => {
+  it('returns null if partitions is empty', () => {
     const snapshot = makeSnapshot(100)
     const rateSnapshot: RateSnapshot = { intervalMs: 5000, partitions: [] }
     expect(detectProducerBurst(snapshot, rateSnapshot)).toBeNull()
   })
 
-  it('produce rate가 MIN_PRODUCE_RATE 미만이면 null 반환 (idle)', () => {
+  it('returns null if produce rate is below MIN_PRODUCE_RATE (idle)', () => {
     const snapshot = makeSnapshot(100)
     const rate = makeRateSnapshot(0.5, 0)
     expect(detectProducerBurst(snapshot, rate)).toBeNull()
   })
 
-  it('produce/consume 비율이 2배 미만이면 null 반환', () => {
+  it('returns null if produce/consume ratio is below 2x', () => {
     // 10 / 6 = 1.6x < 2.0x
     const snapshot = makeSnapshot(100)
     const rate = makeRateSnapshot(10, 6)
     expect(detectProducerBurst(snapshot, rate)).toBeNull()
   })
 
-  it('produce rate가 consume rate의 2배 이상이면 PRODUCER_BURST 반환', () => {
+  it('returns PRODUCER_BURST if produce rate is at least 2x consume rate', () => {
     // 10 / 3 = 3.3x >= 2.0x
     const snapshot = makeSnapshot(100)
     const rate = makeRateSnapshot(10, 3)
@@ -60,7 +60,7 @@ describe('detectProducerBurst', () => {
     expect(result?.topic).toBe('orders')
   })
 
-  it('consume rate가 0이고 produce rate가 충분하면 PRODUCER_BURST 반환', () => {
+  it('returns PRODUCER_BURST if consume rate is 0 and produce rate is sufficient', () => {
     const snapshot = makeSnapshot(100)
     const rate = makeRateSnapshot(20, 0)
     const result = detectProducerBurst(snapshot, rate)
@@ -69,14 +69,14 @@ describe('detectProducerBurst', () => {
     expect(result?.type).toBe('PRODUCER_BURST')
   })
 
-  it('lag이 0이면 PRODUCER_BURST 반환 안 함', () => {
-    // lag이 없으면 burst 판정 불필요
+  it('does not return PRODUCER_BURST if lag is 0', () => {
+    // no burst detection needed when there is no lag
     const snapshot = makeSnapshot(0)
     const rate = makeRateSnapshot(20, 0)
     expect(detectProducerBurst(snapshot, rate)).toBeNull()
   })
 
-  it('description에 produce/consume rate 수치가 포함된다', () => {
+  it('description contains produce/consume rate values', () => {
     const snapshot = makeSnapshot(500)
     const rate = makeRateSnapshot(30, 5)
     const result = detectProducerBurst(snapshot, rate)

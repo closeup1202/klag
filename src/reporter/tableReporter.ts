@@ -44,7 +44,7 @@ export function printLagTable(
     hour12: false,
   }).replace('T', ' ')
 
-  // ── 헤더 ──────────────────────────────────────────────────────
+  // ── Header ───────────────────────────────────────────────────
   if (!watchMode) {
     console.log('')
     console.log(chalk.bold.cyan('⚡ kafka-why') + chalk.gray('  v0.1.0'))
@@ -55,17 +55,17 @@ export function printLagTable(
   console.log(chalk.bold('   Collected At:   ') + chalk.gray(`${localTime} (${tz})`))
   console.log('')
 
-  // ── Group 상태 요약 ────────────────────────────────────────────
+  // ── Group status summary ──────────────────────────────────────
   const status = groupStatus(totalLag)
   const totalStr = chalk.bold(formatLag(totalLag))
   console.log(`   Group Status : ${status}   Total Lag : ${totalStr}`)
   console.log('')
 
-  // ── 파티션별 테이블 ────────────────────────────────────────────
-  // rateSnapshot이 있으면 rate 컬럼 추가
+  // ── Per-partition table ───────────────────────────────────────
+  // Add rate columns if rateSnapshot is available
   const hasRate = !!rateSnapshot && rateSnapshot.partitions.length > 0
 
-  // rate를 빠르게 찾기 위한 Map 구성
+  // Build a map for fast rate lookup
   const rateMap = new Map<string, { produceRate: number; consumeRate: number }>()
   if (hasRate) {
     for (const r of rateSnapshot!.partitions) {
@@ -124,7 +124,7 @@ export function printLagTable(
   console.log(table.toString())
   console.log('')
 
-  // ── RCA 섹션 ──────────────────────────────────────────────────
+  // ── RCA section ──────────────────────────────────────────────
   if (rcaResults.length === 0) return
 
   console.log(chalk.bold('🔎 Root Cause Analysis'))
@@ -134,7 +134,7 @@ export function printLagTable(
     const typeLabel = chalk.bold.yellow(`   [${rca.type}]`) + ' ' + chalk.white(rca.topic)
     console.log(typeLabel)
     console.log(chalk.gray(`   → ${rca.description}`))
-    console.log(chalk.cyan(`   → 제안: ${rca.suggestion}`))
+    console.log(chalk.cyan(`   → Suggestion: ${rca.suggestion}`))
     console.log('')
   }
 }

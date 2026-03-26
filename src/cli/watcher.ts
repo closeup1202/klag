@@ -28,7 +28,7 @@ function printWatchHeader(intervalMs: number, updatedAt: Date): void {
     '  │  ' +
     chalk.yellow('watch mode') +
     '  │  ' +
-    chalk.gray(`${intervalSec}초마다 갱신`) +
+    chalk.gray(`refresh every ${intervalSec}s`) +
     '  │  ' +
     chalk.gray('Ctrl+C to exit')
   )
@@ -47,7 +47,7 @@ function printWatchError(message: string, retryCount: number, retryIn: number): 
   )
   console.log('')
   console.error(chalk.red(`   ❌ Error: ${message}`))
-  console.log(chalk.yellow(`   재시도 ${retryCount}/${MAX_RETRIES}... ${retryIn}초 후`))
+  console.log(chalk.yellow(`   Retrying ${retryCount}/${MAX_RETRIES}... in ${retryIn}s`))
   console.log('')
 }
 
@@ -61,7 +61,7 @@ function printWatchFatal(message: string): void {
   )
   console.log('')
   console.error(chalk.red(`   ❌ Error: ${message}`))
-  console.error(chalk.red(`   재시도 ${MAX_RETRIES}/${MAX_RETRIES} 모두 실패 — watch mode 종료`))
+  console.error(chalk.red(`   All ${MAX_RETRIES}/${MAX_RETRIES} retries failed — exiting watch mode`))
   console.log('')
 }
 
@@ -89,7 +89,7 @@ function printCountdown(seconds: number): Promise<void> {
 
     const tick = (): void => {
       process.stdout.write(
-        `\r${chalk.gray(`   [●] 다음 갱신까지 ${remaining}초...`)}   `
+        `\r${chalk.gray(`   [●] Next refresh in ${remaining}s...`)}   `
       )
       if (remaining === 0) {
         process.stdout.write('\r' + ' '.repeat(40) + '\r')
@@ -112,11 +112,11 @@ function getFriendlyMessage(err: unknown, broker: string): string {
     message.includes('ETIMEDOUT') ||
     message.includes('Connection error')
   ) {
-    return `Broker에 연결할 수 없어요 (${broker})`
+    return `Cannot connect to broker (${broker})`
   }
 
   if (message.includes('Dead state') || message.includes('not found')) {
-    return `Consumer group을 찾을 수 없어요`
+    return `Consumer group not found`
   }
 
   return message
@@ -126,9 +126,9 @@ export async function startWatch(
   options: KafkaOptions,
   noRate: boolean
 ): Promise<void> {
-  // Ctrl+C 핸들러
+  // SIGINT handler
   process.on('SIGINT', () => {
-    console.log(chalk.gray('\n\n  watch mode 종료\n'))
+    console.log(chalk.gray('\n\n  watch mode stopped\n'))
     process.exit(0)
   })
 
@@ -139,23 +139,23 @@ export async function startWatch(
 
   let errorCount = 0
 
-  // ── 루프 ──────────────────────────────────────────────────────
+  // ── main loop ─────────────────────────────────────────────────
   while (true) {
     try {
       await runOnce(options, noRate)
-      errorCount = 0  // 성공하면 에러 카운트 리셋
+      errorCount = 0  // reset error count on success
       await printCountdown(waitSec)
     } catch (err) {
       errorCount++
       const message = getFriendlyMessage(err, options.broker)
 
-      // 최대 재시도 초과 → 종료
+      // exceeded max retries → exit
       if (errorCount >= MAX_RETRIES) {
         printWatchFatal(message)
         process.exit(1)
       }
 
-      // 재시도
+      // retry
       printWatchError(message, errorCount, waitSec)
       await printCountdown(waitSec)
     }
@@ -163,11 +163,11 @@ export async function startWatch(
 }
 /*
 
-흐름 정리:
+Flow summary:
 
-성공        → errorCount 리셋 → 정상 루프 유지
-1번 실패    → "재시도 1/3... N초 후" → 카운트다운 → 재시도
-2번 실패    → "재시도 2/3... N초 후" → 카운트다운 → 재시도
-3번 실패    → "재시도 3/3 모두 실패 — watch mode 종료" → exit(1)
-중간에 성공 → errorCount 0으로 리셋 → 정상 루프 유지 
+success         → reset errorCount → continue normal loop
+1st failure     → "Retrying 1/3... in Ns" → countdown → retry
+2nd failure     → "Retrying 2/3... in Ns" → countdown → retry
+3rd failure     → "All 3/3 retries failed — exiting watch mode" → exit(1)
+success in between → reset errorCount to 0 → continue normal loop
 */

@@ -4,7 +4,14 @@
   "description": "Kafka consumer lag root cause analyzer",
   "type": "module",
   "bin": {
-    "kafka-why": "./dist/cli/index.js"
+    "kafka-why": "./dist/cli/index.js",
+    "kw": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
   },
   "scripts": {
     "build": "tsup",
@@ -12,15 +19,23 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check ./src",
-    "format": "biome format --write ./src"
+    "format": "biome format --write ./src",
+    "prepublishOnly": "npm run build && npm run test"
   },
   "keywords": [
     "kafka",
     "consumer-lag",
     "cli",
-    "debugging"
+    "debugging",
+    "monitoring",
+    "kafkajs"
   ],
   "license": "MIT",
+    "repository": {
+    "type": "git",
+    "url": "https://github.com/closeup1202/kafka-why-cli"
+  },
+  "homepage": "https://github.com/closeup1202/kafka-why-cli#readme",
   "dependencies": {
     "chalk": "^5.6.2",
     "cli-table3": "^0.6.5",

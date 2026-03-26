@@ -1,9 +1,9 @@
 import type { LagSnapshot, RateSnapshot, RcaResult } from '../types/index.js'
 
-// produce rate가 consume rate의 이 배수 이상이면 PRODUCER_BURST 판정
+// Classify as PRODUCER_BURST if produce rate is this multiple of consume rate or higher
 const BURST_RATIO_THRESHOLD = 2.0
 
-// produce rate가 이 값 이상일 때만 판정 (너무 낮은 traffic은 무시)
+// Only classify when produce rate is at or above this value (ignore very low traffic)
 const MIN_PRODUCE_RATE = 1.0
 
 export function detectProducerBurst(
@@ -14,7 +14,7 @@ export function detectProducerBurst(
 
   if (ratePartitions.length === 0) return null
 
-  // ── topic별로 produce/consume rate 집계 ───────────────────────
+  // ── Aggregate produce/consume rate per topic ──────────────────
   const topicRateMap = new Map<string,{ totalProduce: number; totalConsume: number }>()
 
   for (const p of ratePartitions) {
@@ -26,14 +26,14 @@ export function detectProducerBurst(
     entry.totalConsume += p.consumeRate
   }
 
-  // ── topic별 BURST 판정 ────────────────────────────────────────
+  // ── Detect BURST per topic ────────────────────────────────────
   for (const [topic, rates] of topicRateMap) {
     const { totalProduce, totalConsume } = rates
 
-    // produce rate가 너무 낮으면 무시 (idle 상태)
+    // Ignore if produce rate is too low (idle)
     if (totalProduce < MIN_PRODUCE_RATE) continue
 
-    // consume rate가 0이면 비율 계산 대신 직접 판정
+    // If consume rate is 0, detect directly instead of computing ratio
     const isBurst =
       totalConsume === 0
         ? totalProduce >= MIN_PRODUCE_RATE
@@ -41,7 +41,7 @@ export function detectProducerBurst(
 
     if (!isBurst) continue
 
-    // 해당 topic의 totalLag 계산
+    // Calculate totalLag for the topic
     const topicLag = snapshot.partitions
       .filter((p) => p.topic === topic)
       .reduce((sum, p) => sum + p.lag, 0n)
@@ -59,9 +59,9 @@ export function detectProducerBurst(
       topic,
       description:
         `produce rate ${produceStr} msg/s vs consume rate ${consumeStr} msg/s ` +
-        `(${ratio}x 차이) — consumer가 유입 속도를 따라가지 못하는 중`,
+        `(${ratio}x difference) — consumer is falling behind ingestion rate`,
       suggestion:
-        'consumer 인스턴스 수 또는 파티션 수 증가를 고려해보세요',
+        'Consider increasing consumer instances or partition count',
       details: [],
     }
   }
@@ -69,7 +69,7 @@ export function detectProducerBurst(
   return null
 }
 /*
-판정 로직 정리:
+Decision logic summary:
 
 produceRate  10 msg/s
 consumeRate   3 msg/s
@@ -77,7 +77,7 @@ ratio = 10 / 3 = 3.3x  >=  threshold 2.0x  →  PRODUCER_BURST ✅
 
 produceRate  10 msg/s
 consumeRate   6 msg/s
-ratio = 10 / 6 = 1.6x  <   threshold 2.0x  →  정상 (일시적 차이)
+ratio = 10 / 6 = 1.6x  <   threshold 2.0x  →  normal (temporary difference)
 
-produceRate   0.5 msg/s  <  MIN_PRODUCE_RATE 1.0  →  idle, 무시 
+produceRate   0.5 msg/s  <  MIN_PRODUCE_RATE 1.0  →  idle, ignored
 */

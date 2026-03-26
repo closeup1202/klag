@@ -83,21 +83,21 @@ program
         message.includes('Connection error') ||
         message.includes('connect ECONNREFUSED')
       ) {
-        console.error(chalk.red(`\n❌ Broker에 연결할 수 없어요\n`))
-        console.error(chalk.yellow('   확인해보세요:'))
-        console.error(chalk.gray(`   • Kafka 실행 여부: docker ps`))
-        console.error(chalk.gray(`   • Broker 주소: ${options.broker}`))
-        console.error(chalk.gray(`   • 포트 접근 가능 여부: nc -zv ${options.broker.split(':')[0]} ${options.broker.split(':')[1]}`))
+        console.error(chalk.red(`\n❌ Cannot connect to broker\n`))
+        console.error(chalk.yellow('   Check the following:'))
+        console.error(chalk.gray(`   • Is Kafka running: docker ps`))
+        console.error(chalk.gray(`   • Broker address: ${options.broker}`))
+        console.error(chalk.gray(`   • Port accessibility: nc -zv ${options.broker.split(':')[0]} ${options.broker.split(':')[1]}`))
         console.error('')
         process.exit(1)
       }
 
       // No group
       if (message.includes('not found') || message.includes('Dead state')) {
-        console.error(chalk.red(`\n❌ Consumer group을 찾을 수 없어요\n`))
-        console.error(chalk.yellow('   확인해보세요:'))
+        console.error(chalk.red(`\n❌ Consumer group not found\n`))
+        console.error(chalk.yellow('   Check the following:'))
         console.error(chalk.gray(`   • Group ID: ${options.group}`))
-        console.error(chalk.gray(`   • 존재하는 group 목록 확인:`))
+        console.error(chalk.gray(`   • List existing groups:`))
         console.error(chalk.gray(`     kafka-consumer-groups.sh --bootstrap-server ${options.broker} --list`))
         console.error('')
         process.exit(1)

@@ -3,7 +3,7 @@ import { InvalidArgumentError } from 'commander'
 export function parseInterval(value: string): number {
   const parsed = parseInt(value, 10)
   if (isNaN(parsed) || parsed < 1000) {
-    throw new InvalidArgumentError('--interval 은 1000ms 이상의 숫자여야 해요.')
+    throw new InvalidArgumentError('--interval must be a number >= 1000ms.')
   }
   return parsed
 }
@@ -11,7 +11,7 @@ export function parseInterval(value: string): number {
 export function parseBroker(value: string): string {
   const pattern = /^.+:\d+$/
   if (!pattern.test(value)) {
-    throw new InvalidArgumentError('--broker 형식이 올바르지 않아요. 예: localhost:9092')
+    throw new InvalidArgumentError('--broker format is invalid. Example: localhost:9092')
   }
   return value
 }
@@ -19,7 +19,7 @@ export function parseBroker(value: string): string {
 export function parseTimeout(value: string): number {
   const parsed = parseInt(value, 10)
   if (isNaN(parsed) || parsed < 1000) {
-    throw new InvalidArgumentError('--timeout 은 1000ms 이상의 숫자여야 해요.')
+    throw new InvalidArgumentError('--timeout must be a number >= 1000ms.')
   }
   return parsed
 }

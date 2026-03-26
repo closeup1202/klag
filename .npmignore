@@ -1,0 +1,14 @@
+# Source
+src/
+tests/
+
+# Chore Files
+tsconfig.json
+tsup.config.ts
+biome.json
+vitest.config.ts
+
+# Others
+.gitignore
+test-run.ts
+*.tar.gz
