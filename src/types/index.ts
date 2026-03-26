@@ -3,6 +3,7 @@ export interface KafkaOptions {
   broker: string
   groupId: string
   intervalMs?: number  // 샘플링 간격 (기본 5000ms)
+  timeoutMs?: number
 }
 
 // ─── 파티션별 Lag 정보 ────────────────────────────────────────────

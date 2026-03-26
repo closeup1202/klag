@@ -25,6 +25,15 @@ function parseBroker(value: string): string {
   return value
 }
 
+// 커스텀 파서에 추가
+function parseTimeout(value: string): number {
+  const parsed = parseInt(value, 10)
+  if (isNaN(parsed) || parsed < 1000) {
+    throw new InvalidArgumentError('--timeout 은 1000ms 이상의 숫자여야 해요.')
+  }
+  return parsed
+}
+
 const program = new Command()
 
 program
@@ -35,6 +44,7 @@ program
   .requiredOption('-g, --group <groupId>', 'Consumer group ID')
   .option('-i, --interval <ms>', 'Rate sampling interval in ms', parseInterval, 5000)
   .option('-w, --watch', 'Watch mode — refresh every interval')
+  .option('-t, --timeout <ms>', 'Connection timeout in ms', parseTimeout, 5000)
   .option('--no-rate', 'Skip rate sampling (faster, no PRODUCER_BURST detection)')
   .option('--json', 'Output raw JSON instead of table')
   .action(async (options) => {
@@ -43,6 +53,7 @@ program
         broker: options.broker,
         groupId: options.group,
         intervalMs: options.interval,
+        timeoutMs: options.timeout,
       }
 
       // ── watch 모드 ─────────────────────────────────────────────
