@@ -21,9 +21,9 @@ export function analyze(
     if (burst) results.push(burst)
   }
 
-  // ── Detect Hot Partition ──────────────────────────────────────
-  const hotPartition = detectHotPartition(snapshot)
-  if (hotPartition) results.push(hotPartition)
+  // ── Detect Hot Partition (By Topic) ──────────────────────────────────────
+  const hotPartitions = detectHotPartition(snapshot)
+  results.push(...hotPartitions)
 
   return results
 }
