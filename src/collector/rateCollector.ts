@@ -62,6 +62,7 @@ export async function collectRate(
     // ── Collect snapshot2 ─────────────────────────────────────────
     const committedRaw2 = await admin.fetchOffsets({
       groupId: options.groupId,
+      topics,
     });
     const logEnd2 = await fetchLogEndOffsets(admin, topics);
     const committed2 = buildCommittedMap(committedRaw2);

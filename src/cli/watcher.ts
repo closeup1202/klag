@@ -78,7 +78,7 @@ function printWatchFatal(message: string): void {
   console.log("");
 }
 
-// ── 이전 snapshot과 비교해서 lagDiff 계산 ─────────────────────────
+// ── Calculate lagDiff by comparing against the previous snapshot ──
 function applyDiff(current: LagSnapshot, previous: LagSnapshot): LagSnapshot {
   const prevMap = new Map<string, bigint>();
   for (const p of previous.partitions) {
@@ -114,14 +114,14 @@ async function runOnce(
 
   const rcaResults = analyze(snapshot, rateSnapshot);
 
-  // 이전 snapshot이 있으면 diff 계산
+  // Apply diff only when a previous snapshot exists
   const snapshotWithDiff = previous ? applyDiff(snapshot, previous) : snapshot;
 
   clearScreen();
   printWatchHeader(options.intervalMs ?? 5000, snapshot.collectedAt);
   printLagTable(snapshotWithDiff, rcaResults, rateSnapshot, true);
 
-  return snapshot; // 다음 루프를 위해 diff 없는 원본 반환
+  return snapshot; // Return the original (no diff) for use in the next iteration
 }
 
 function printCountdown(seconds: number): Promise<void> {
@@ -182,10 +182,14 @@ export async function startWatch(
 
   while (true) {
     try {
-      // 이전 snapshot 전달 → diff 계산
+      // Pass previous snapshot so lagDiff can be calculated
       previousSnapshot = await runOnce(options, noRate, previousSnapshot);
       errorCount = 0;
-      await printCountdown(waitSec);
+      // When rate sampling was performed, collectRate already waited intervalMs —
+      // skip the countdown to avoid doubling the cycle time
+      if (noRate) {
+        await printCountdown(waitSec);
+      }
     } catch (err) {
       errorCount++;
       const message = getFriendlyMessage(err, options.broker);

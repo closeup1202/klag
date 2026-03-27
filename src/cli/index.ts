@@ -7,6 +7,7 @@ import { collectLag } from "../collector/lagCollector.js";
 import { collectRate } from "../collector/rateCollector.js";
 import { printLagTable } from "../reporter/tableReporter.js";
 import type { RateSnapshot } from "../types/index.js";
+import { VERSION } from "../types/index.js";
 import { parseBroker, parseInterval, parseTimeout } from "./validators.js";
 import { startWatch } from "./watcher.js";
 
@@ -15,7 +16,7 @@ const program = new Command();
 program
   .name("klag")
   .description("Kafka consumer lag root cause analyzer")
-  .version("0.1.0")
+  .version(VERSION)
   .requiredOption(
     "-b, --broker <host:port>",
     "Kafka broker address",
@@ -68,8 +69,6 @@ program
         rateSnapshot = await collectRate(kafkaOptions, topics);
         process.stdout.write(`\r${" ".repeat(50)}\r`);
       }
-
-      process.stdout.write(`\r${" ".repeat(50)}\r`);
 
       const rcaResults = analyze(snapshot, rateSnapshot);
 

@@ -1,7 +1,7 @@
 import type { LagSnapshot, RateSnapshot, RcaResult } from "../types/index.js";
 
 const MIN_PRODUCE_RATE = 1.0;
-const STALLED_CONSUME_RATE = 0.1; // 사실상 멈춘 것으로 판단
+const STALLED_CONSUME_RATE = 0.1; // Treat as effectively stalled
 
 export function detectSlowConsumer(
   snapshot: LagSnapshot,
@@ -29,12 +29,12 @@ export function detectSlowConsumer(
   for (const [topic, rates] of topicRateMap) {
     const { totalProduce, totalConsume } = rates;
 
-    // produce가 활발한데 consume이 거의 0 → stalled consumer
+    // Active produce but consume near zero → stalled consumer
     if (totalProduce < MIN_PRODUCE_RATE) continue;
     if (totalConsume >= STALLED_CONSUME_RATE) continue;
 
-    // PRODUCER_BURST랑 겹치지 않게 — burst는 burstDetector가 담당
-    // 여기선 consume이 완전히 멈춘 케이스만
+    // Overlap with PRODUCER_BURST is prevented in the analyzer orchestrator;
+    // this detector focuses solely on the fully-stalled consume case
     const topicLag = snapshot.partitions
       .filter((p) => p.topic === topic)
       .reduce((sum, p) => sum + p.lag, 0n);

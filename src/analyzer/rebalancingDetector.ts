@@ -22,14 +22,13 @@ export function detectRebalancing(snapshot: LagSnapshot): RcaResult | null {
   };
 }
 /*
-
-판정 로직:
+Detection logic:
 
 group.state === 'PreparingRebalance'
-→ consumer 추가/제거로 rebalance 시작
-→ 이 시간 동안 모든 consumption 중단 → lag 급증
+→ A consumer joined or left, triggering a rebalance
+→ All consumption is paused during this window → lag spikes
 
 group.state === 'CompletingRebalance'
-→ partition 재할당 완료 직전
-→ 곧 정상화될 것 
+→ Partition reassignment is nearly done
+→ Should recover shortly
 */
