@@ -64,7 +64,6 @@ export function detectProducerBurst(
         `produce rate ${produceStr} msg/s vs consume rate ${consumeStr} msg/s ` +
         `(${ratio}x difference) — consumer is falling behind ingestion rate`,
       suggestion: "Consider increasing consumer instances or partition count",
-      details: [],
     };
   }
 

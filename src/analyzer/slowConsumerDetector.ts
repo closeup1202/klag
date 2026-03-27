@@ -51,7 +51,6 @@ export function detectSlowConsumer(
         ` — messages are accumulating with no consumption`,
       suggestion:
         "Check if consumer process is alive, look for errors in consumer logs, or check for long GC pauses",
-      details: [],
     };
   }
 

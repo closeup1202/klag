@@ -22,9 +22,16 @@ export function analyze(
     const burst = detectProducerBurst(snapshot, rateSnapshot);
     if (burst) results.push(burst);
 
-    // ── Slow Consumer ──────────────────────────────────────
+    // ── Slow Consumer — skip if BURST already detected for same topic ──────
     const slow = detectSlowConsumer(snapshot, rateSnapshot);
-    if (slow) results.push(slow);
+    if (
+      slow &&
+      !results.some(
+        (r) => r.topic === slow.topic && r.type === "PRODUCER_BURST",
+      )
+    ) {
+      results.push(slow);
+    }
   }
 
   // ── Detect Hot Partition (By Topic) ──────────────────────────────────────

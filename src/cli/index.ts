@@ -61,7 +61,12 @@ program
       let rateSnapshot: RateSnapshot | undefined;
       if (options.rate !== false) {
         const topics = [...new Set(snapshot.partitions.map((p) => p.topic))];
+        const waitSec = (kafkaOptions.intervalMs ?? 5000) / 1000;
+        process.stdout.write(
+          chalk.gray(`  Sampling rates... (waiting ${waitSec}s)   `),
+        );
         rateSnapshot = await collectRate(kafkaOptions, topics);
+        process.stdout.write(`\r${" ".repeat(50)}\r`);
       }
 
       process.stdout.write(`\r${" ".repeat(50)}\r`);

@@ -57,7 +57,6 @@ export async function collectRate(
     const committed1 = buildCommittedMap(committedRaw);
 
     // ── Wait N seconds ────────────────────────────────────────────
-    process.stdout.write(`\r  Sampling rates... (waiting ${intervalSec}s)   `);
     await sleep(intervalMs);
 
     // ── Collect snapshot2 ─────────────────────────────────────────
@@ -66,8 +65,6 @@ export async function collectRate(
     });
     const logEnd2 = await fetchLogEndOffsets(admin, topics);
     const committed2 = buildCommittedMap(committedRaw2);
-
-    process.stdout.write(`\r${" ".repeat(50)}\r`);
 
     // ── Calculate rates ───────────────────────────────────────────
     const partitions: PartitionRate[] = [];

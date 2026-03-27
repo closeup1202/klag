@@ -104,7 +104,12 @@ async function runOnce(
   let rateSnapshot: RateSnapshot | undefined;
   if (!noRate) {
     const topics = [...new Set(snapshot.partitions.map((p) => p.topic))];
+    const waitSec = (options.intervalMs ?? 5000) / 1000;
+    process.stdout.write(
+      chalk.gray(`  Sampling rates... (waiting ${waitSec}s)   `),
+    );
     rateSnapshot = await collectRate(options, topics);
+    process.stdout.write(`\r${" ".repeat(50)}\r`);
   }
 
   const rcaResults = analyze(snapshot, rateSnapshot);

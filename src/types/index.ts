@@ -1,4 +1,5 @@
-export const VERSION = "0.1.0";
+declare const __APP_VERSION__: string;
+export const VERSION = __APP_VERSION__;
 
 // ─── Kafka connection options ─────────────────────────────────────────────
 export interface KafkaOptions {
@@ -65,7 +66,7 @@ export interface RcaResult {
   topic: string;
   description: string;
   suggestion: string;
-  details: HotPartitionDetail[];
+  details?: HotPartitionDetail[];
 }
 
 export interface HotPartitionDetail {

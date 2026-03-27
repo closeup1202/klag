@@ -75,7 +75,7 @@ export function printLagTable(
 
   // ── Table Per Partition ────────────────────────────────────────────
   const hasRate = !!rateSnapshot && rateSnapshot.partitions.length > 0;
-  const hasTrend = watchMode && partitions.some((p) => p.lagDiff !== undefined);
+  const hasTrend = watchMode;
 
   const rateMap = new Map<
     string,

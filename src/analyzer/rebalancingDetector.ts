@@ -8,7 +8,7 @@ export function detectRebalancing(snapshot: LagSnapshot): RcaResult | null {
   if (!REBALANCING_STATES.includes(groupState)) return null;
   if (totalLag === 0n) return null;
 
-  const isPrearing = groupState === "PreparingRebalance";
+  const isPreparing = groupState === "PreparingRebalance";
 
   return {
     type: "REBALANCING",
@@ -16,10 +16,9 @@ export function detectRebalancing(snapshot: LagSnapshot): RcaResult | null {
     description:
       `consumer group is currently in ${groupState} state` +
       ` — all consumption is paused during rebalancing`,
-    suggestion: isPrearing
+    suggestion: isPreparing
       ? "A new consumer joined or left the group. Lag may spike temporarily — monitor if it recovers after rebalancing completes"
       : "Rebalancing is completing. Lag should recover shortly once partition assignment is finalized",
-    details: [],
   };
 }
 /*

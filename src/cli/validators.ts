@@ -9,7 +9,7 @@ export function parseInterval(value: string): number {
 }
 
 export function parseBroker(value: string): string {
-  const pattern = /^.+:\d+$/;
+  const pattern = /^[^:]+:\d+$/;
   if (!pattern.test(value)) {
     throw new InvalidArgumentError(
       "--broker format is invalid. Example: localhost:9092",
