@@ -17,6 +17,7 @@ function makeSnapshot(lags: number[]): LagSnapshot {
     groupId: 'test-group',
     broker: 'localhost:9092',
     collectedAt: new Date(),
+    groupState: 'Stable',
     partitions,
     totalLag,
   }
@@ -69,6 +70,7 @@ describe('detectHotPartition', () => {
       groupId: 'test-group',
       broker: 'localhost:9092',
       collectedAt: new Date(),
+      groupState: 'Stable',
       partitions: [
         { topic: 'orders',   partition: 0, logEndOffset: 10900n, committedOffset: 10000n, lag: 900n },
         { topic: 'orders',   partition: 1, logEndOffset: 10050n, committedOffset: 10000n, lag: 50n  },

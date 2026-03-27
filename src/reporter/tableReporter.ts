@@ -1,127 +1,141 @@
-import chalk from 'chalk'
-import Table from 'cli-table3'
-import type { HorizontalAlignment } from 'cli-table3'
-import type { LagSnapshot, RcaResult, RateSnapshot } from '../types/index.js'
-import { classifyLag } from '../types/index.js'
+import chalk from "chalk";
+import type { HorizontalAlignment } from "cli-table3";
+import Table from "cli-table3";
+import type { LagSnapshot, RateSnapshot, RcaResult } from "../types/index.js";
+import { classifyLag, VERSION } from "../types/index.js";
 
 const LEVEL_ICON: Record<string, string> = {
-  OK:   chalk.green('🟢 OK  '),
-  WARN: chalk.yellow('🟡 WARN'),
-  HIGH: chalk.red('🔴 HIGH'),
-}
+  OK: chalk.green("🟢 OK  "),
+  WARN: chalk.yellow("🟡 WARN"),
+  HIGH: chalk.red("🔴 HIGH"),
+};
 
 function formatLag(lag: bigint): string {
-  return lag.toLocaleString()
+  return lag.toLocaleString();
 }
 
 function formatRate(rate: number): string {
-  return rate < 0.1 ? '0' : `${rate.toFixed(1)} msg/s`
+  return rate < 0.1 ? "0" : `${rate.toFixed(1)} msg/s`;
 }
 
 function formatTrend(lagDiff?: bigint): string {
-  if (lagDiff === undefined) return chalk.gray('  -  ')
-  if (lagDiff === 0n) return chalk.gray('  =  ')
-  if (lagDiff > 0n) return chalk.red(`▲ +${lagDiff.toLocaleString()}`)
-  return chalk.green(`▼ ${lagDiff.toLocaleString()}`)
+  if (lagDiff === undefined) return chalk.gray("  -  ");
+  if (lagDiff === 0n) return chalk.gray("  =  ");
+  if (lagDiff > 0n) return chalk.red(`▲ +${lagDiff.toLocaleString()}`);
+  return chalk.green(`▼ ${lagDiff.toLocaleString()}`);
 }
 
 function groupStatus(totalLag: bigint): string {
-  const level = classifyLag(totalLag)
-  if (level === 'OK')   return chalk.green('✅ OK')
-  if (level === 'WARN') return chalk.yellow('⚠️  WARNING')
-  return chalk.red('🚨 CRITICAL')
+  const level = classifyLag(totalLag);
+  if (level === "OK") return chalk.green("✅ OK");
+  if (level === "WARN") return chalk.yellow("⚠️  WARNING");
+  return chalk.red("🚨 CRITICAL");
 }
 
 export function printLagTable(
   snapshot: LagSnapshot,
   rcaResults: RcaResult[] = [],
   rateSnapshot?: RateSnapshot,
-  watchMode = false
+  watchMode = false,
 ): void {
-  const { groupId, broker, collectedAt, partitions, totalLag } = snapshot
+  const { groupId, broker, collectedAt, partitions, totalLag } = snapshot;
 
   // ── Header ──────────────────────────────────────────────────────
   if (!watchMode) {
-    console.log('')
-    console.log(chalk.bold.cyan('⚡ klag') + chalk.gray('  v0.1.0'))
-    console.log('')
+    console.log("");
+    console.log(chalk.bold.cyan("⚡ klag") + chalk.gray(`  v${VERSION}`));
+    console.log("");
   }
-  console.log(chalk.bold('🔍 Consumer Group: ') + chalk.white(groupId))
-  console.log(chalk.bold('   Broker:         ') + chalk.white(broker))
+  console.log(chalk.bold("🔍 Consumer Group: ") + chalk.white(groupId));
+  console.log(chalk.bold("   Broker:         ") + chalk.white(broker));
 
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const localTime = collectedAt.toLocaleString('sv-SE', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).replace('T', ' ')
-  console.log(chalk.bold('   Collected At:   ') + chalk.gray(`${localTime} (${tz})`))
-  console.log('')
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const localTime = collectedAt
+    .toLocaleString("sv-SE", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+    .replace("T", " ");
+  console.log(
+    chalk.bold("   Collected At:   ") + chalk.gray(`${localTime} (${tz})`),
+  );
+  console.log("");
 
   // ── Group State Summary ────────────────────────────────────────────
-  const status = groupStatus(totalLag)
-  const totalStr = chalk.bold(formatLag(totalLag))
-  console.log(`   Group Status : ${status}   Total Lag : ${totalStr}`)
-  console.log('')
+  const status = groupStatus(totalLag);
+  const totalStr = chalk.bold(formatLag(totalLag));
+  console.log(`   Group Status : ${status}   Total Lag : ${totalStr}`);
+  console.log("");
 
   // ── Table Per Partition ────────────────────────────────────────────
-  const hasRate = !!rateSnapshot && rateSnapshot.partitions.length > 0
-  const hasTrend = watchMode && partitions.some((p) => p.lagDiff !== undefined)
+  const hasRate = !!rateSnapshot && rateSnapshot.partitions.length > 0;
+  const hasTrend = watchMode && partitions.some((p) => p.lagDiff !== undefined);
 
-  const rateMap = new Map<string, { produceRate: number; consumeRate: number }>()
-  if (hasRate) {
-    for (const r of rateSnapshot!.partitions) {
-      rateMap.set(`${r.topic}-${r.partition}`, r)
+  const rateMap = new Map<
+    string,
+    { produceRate: number; consumeRate: number }
+  >();
+  if (hasRate && rateSnapshot) {
+    for (const r of rateSnapshot.partitions) {
+      rateMap.set(`${r.topic}-${r.partition}`, r);
     }
   }
 
   const head = [
-    chalk.bold('Topic'),
-    chalk.bold('Partition'),
-    chalk.bold('Committed Offset'),
-    chalk.bold('Log-End Offset'),
-    chalk.bold('Lag'),
-    ...(hasTrend ? [chalk.bold('Trend')] : []),
-    chalk.bold('Status'),
-    ...(hasRate ? [chalk.bold('Produce Rate'), chalk.bold('Consume Rate')] : []),
-  ]
+    chalk.bold("Topic"),
+    chalk.bold("Partition"),
+    chalk.bold("Committed Offset"),
+    chalk.bold("Log-End Offset"),
+    chalk.bold("Lag"),
+    ...(hasTrend ? [chalk.bold("Trend")] : []),
+    chalk.bold("Status"),
+    ...(hasRate
+      ? [chalk.bold("Produce Rate"), chalk.bold("Consume Rate")]
+      : []),
+  ];
 
   const table = new Table({
     head,
     colAligns: [
-      'left', 'right', 'right', 'right', 'right',
-      ...(hasTrend ? ['right'] : []),
-      'center',
-      ...(hasRate ? ['right', 'right'] : []),
+      "left",
+      "right",
+      "right",
+      "right",
+      "right",
+      ...(hasTrend ? ["right"] : []),
+      "center",
+      ...(hasRate ? ["right", "right"] : []),
     ] as HorizontalAlignment[],
-    style: { head: [], border: ['grey'] },
-  })
+    style: { head: [], border: ["grey"] },
+  });
 
-  let lastTopic = ''
+  let lastTopic = "";
 
   for (const p of partitions) {
-    const level = classifyLag(p.lag)
-    const lagStr = level === 'HIGH'
-      ? chalk.red(formatLag(p.lag))
-      : level === 'WARN'
-        ? chalk.yellow(formatLag(p.lag))
-        : chalk.green(formatLag(p.lag))
+    const level = classifyLag(p.lag);
+    const lagStr =
+      level === "HIGH"
+        ? chalk.red(formatLag(p.lag))
+        : level === "WARN"
+          ? chalk.yellow(formatLag(p.lag))
+          : chalk.green(formatLag(p.lag));
 
-    const rateEntry = rateMap.get(`${p.topic}-${p.partition}`)
+    const rateEntry = rateMap.get(`${p.topic}-${p.partition}`);
     const rateColumns = hasRate
       ? [
           chalk.yellow(formatRate(rateEntry?.produceRate ?? 0)),
           chalk.cyan(formatRate(rateEntry?.consumeRate ?? 0)),
         ]
-      : []
+      : [];
 
-    const topicDisplay = p.topic !== lastTopic ? p.topic : ''
-    lastTopic = p.topic
+    const topicDisplay = p.topic !== lastTopic ? p.topic : "";
+    lastTopic = p.topic;
 
     table.push([
       topicDisplay,
@@ -132,23 +146,23 @@ export function printLagTable(
       ...(hasTrend ? [formatTrend(p.lagDiff)] : []),
       LEVEL_ICON[level],
       ...rateColumns,
-    ])
+    ]);
   }
 
-  console.log(table.toString())
-  console.log('')
+  console.log(table.toString());
+  console.log("");
 
   // ── RCA Section ──────────────────────────────────────────────────
-  if (rcaResults.length === 0) return
+  if (rcaResults.length === 0) return;
 
-  console.log(chalk.bold('🔎 Root Cause Analysis'))
-  console.log('')
+  console.log(chalk.bold("🔎 Root Cause Analysis"));
+  console.log("");
 
   for (const rca of rcaResults) {
-    const typeLabel = chalk.bold.yellow(`   [${rca.type}]`) + ' ' + chalk.white(rca.topic)
-    console.log(typeLabel)
-    console.log(chalk.gray(`   → ${rca.description}`))
-    console.log(chalk.cyan(`   → Suggestion: ${rca.suggestion}`))
-    console.log('')
+    const typeLabel = `${chalk.bold.yellow(`   [${rca.type}]`)} ${chalk.white(rca.topic)}`;
+    console.log(typeLabel);
+    console.log(chalk.gray(`   → ${rca.description}`));
+    console.log(chalk.cyan(`   → Suggestion: ${rca.suggestion}`));
+    console.log("");
   }
 }

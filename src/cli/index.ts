@@ -1,27 +1,41 @@
-process.removeAllListeners('warning')
+process.removeAllListeners("warning");
 
-import { Command } from 'commander'
-import chalk from 'chalk'
-import { parseInterval, parseBroker, parseTimeout } from './validators.js'
-import { collectLag } from '../collector/lagCollector.js'
-import { collectRate } from '../collector/rateCollector.js'
-import { printLagTable } from '../reporter/tableReporter.js'
-import { analyze } from '../analyzer/index.js'
-import { startWatch } from './watcher.js'
+import chalk from "chalk";
+import { Command } from "commander";
+import { analyze } from "../analyzer/index.js";
+import { collectLag } from "../collector/lagCollector.js";
+import { collectRate } from "../collector/rateCollector.js";
+import { printLagTable } from "../reporter/tableReporter.js";
+import type { RateSnapshot } from "../types/index.js";
+import { parseBroker, parseInterval, parseTimeout } from "./validators.js";
+import { startWatch } from "./watcher.js";
 
-const program = new Command()
+const program = new Command();
 
 program
-  .name('klag')
-  .description('Kafka consumer lag root cause analyzer')
-  .version('0.1.0')
-  .requiredOption('-b, --broker <host:port>', 'Kafka broker address', parseBroker, 'localhost:9092')
-  .requiredOption('-g, --group <groupId>', 'Consumer group ID')
-  .option('-i, --interval <ms>', 'Rate sampling interval in ms', parseInterval, 5000)
-  .option('-w, --watch', 'Watch mode — refresh every interval')
-  .option('-t, --timeout <ms>', 'Connection timeout in ms', parseTimeout, 5000)
-  .option('--no-rate', 'Skip rate sampling (faster, no PRODUCER_BURST detection)')
-  .option('--json', 'Output raw JSON instead of table')
+  .name("klag")
+  .description("Kafka consumer lag root cause analyzer")
+  .version("0.1.0")
+  .requiredOption(
+    "-b, --broker <host:port>",
+    "Kafka broker address",
+    parseBroker,
+    "localhost:9092",
+  )
+  .requiredOption("-g, --group <groupId>", "Consumer group ID")
+  .option(
+    "-i, --interval <ms>",
+    "Rate sampling interval in ms",
+    parseInterval,
+    5000,
+  )
+  .option("-w, --watch", "Watch mode — refresh every interval")
+  .option("-t, --timeout <ms>", "Connection timeout in ms", parseTimeout, 5000)
+  .option(
+    "--no-rate",
+    "Skip rate sampling (faster, no PRODUCER_BURST detection)",
+  )
+  .option("--json", "Output raw JSON instead of table")
   .action(async (options) => {
     try {
       const kafkaOptions = {
@@ -29,29 +43,30 @@ program
         groupId: options.group,
         intervalMs: options.interval,
         timeoutMs: options.timeout,
-      }
+      };
 
       // ── watch mode ─────────────────────────────────────────────
       if (options.watch) {
-        await startWatch(kafkaOptions, options.rate === false)
-        return
+        await startWatch(kafkaOptions, options.rate === false);
+        return;
       }
 
       // ── general mode ──────────────────────────────────────────────
-      process.stdout.write(chalk.gray('  Connecting to broker...'))
+      process.stdout.write(chalk.gray("  Connecting to broker..."));
 
-      const snapshot = await collectLag(kafkaOptions)
+      const snapshot = await collectLag(kafkaOptions);
 
-      process.stdout.write('\r' + ' '.repeat(50) + '\r')
+      process.stdout.write(`\r${" ".repeat(50)}\r`);
 
-      let rateSnapshot = undefined
+      let rateSnapshot: RateSnapshot | undefined;
       if (options.rate !== false) {
-        rateSnapshot = await collectRate(kafkaOptions)
+        const topics = [...new Set(snapshot.partitions.map((p) => p.topic))];
+        rateSnapshot = await collectRate(kafkaOptions, topics);
       }
 
-      process.stdout.write('\r' + ' '.repeat(50) + '\r')
+      process.stdout.write(`\r${" ".repeat(50)}\r`);
 
-      const rcaResults = analyze(snapshot, rateSnapshot)
+      const rcaResults = analyze(snapshot, rateSnapshot);
 
       if (options.json) {
         const serializable = {
@@ -65,47 +80,55 @@ program
           })),
           rate: rateSnapshot,
           rca: rcaResults,
-        }
-        console.log(JSON.stringify(serializable, null, 2))
+        };
+        console.log(JSON.stringify(serializable, null, 2));
       } else {
-        printLagTable(snapshot, rcaResults, rateSnapshot)
+        printLagTable(snapshot, rcaResults, rateSnapshot);
       }
 
-      process.exit(0)
-     } catch (err) {
-      process.stdout.write('\r' + ' '.repeat(50) + '\r')
-      const message = err instanceof Error ? err.message : String(err)
+      process.exit(0);
+    } catch (err) {
+      process.stdout.write(`\r${" ".repeat(50)}\r`);
+      const message = err instanceof Error ? err.message : String(err);
 
       // No Broker
       if (
-        message.includes('ECONNREFUSED') ||
-        message.includes('ETIMEDOUT') ||
-        message.includes('Connection error') ||
-        message.includes('connect ECONNREFUSED')
+        message.includes("ECONNREFUSED") ||
+        message.includes("ETIMEDOUT") ||
+        message.includes("Connection error") ||
+        message.includes("connect ECONNREFUSED")
       ) {
-        console.error(chalk.red(`\n❌ Cannot connect to broker\n`))
-        console.error(chalk.yellow('   Check the following:'))
-        console.error(chalk.gray(`   • Is Kafka running: docker ps`))
-        console.error(chalk.gray(`   • Broker address: ${options.broker}`))
-        console.error(chalk.gray(`   • Port accessibility: nc -zv ${options.broker.split(':')[0]} ${options.broker.split(':')[1]}`))
-        console.error('')
-        process.exit(1)
+        console.error(chalk.red(`\n❌ Cannot connect to broker\n`));
+        console.error(chalk.yellow("   Check the following:"));
+        console.error(chalk.gray(`   • Is Kafka running: docker ps`));
+        console.error(chalk.gray(`   • Broker address: ${options.broker}`));
+        console.error(
+          chalk.gray(
+            `   • Port accessibility: nc -zv ${options.broker.split(":")[0]} ${options.broker.split(":")[1]}`,
+          ),
+        );
+        console.error("");
+        process.exit(1);
       }
 
       // No group
-      if (message.includes('not found') || message.includes('Dead state')) {
-        console.error(chalk.red(`\n❌ Consumer group not found\n`))
-        console.error(chalk.yellow('   Check the following:'))
-        console.error(chalk.gray(`   • Group ID: ${options.group}`))
-        console.error(chalk.gray(`   • List existing groups:`))
-        console.error(chalk.gray(`     kafka-consumer-groups.sh --bootstrap-server ${options.broker} --list`))
-        console.error('')
-        process.exit(1)
+      if (message.includes("not found") || message.includes("Dead state")) {
+        console.error(chalk.red(`\n❌ Consumer group not found\n`));
+        console.error(chalk.yellow("   Check the following:"));
+        console.error(chalk.gray(`   • Group ID: ${options.group}`));
+        console.error(chalk.gray(`   • List existing groups:`));
+        console.error(
+          chalk.gray(
+            `     kafka-consumer-groups.sh --bootstrap-server ${options.broker} --list`,
+          ),
+        );
+        console.error("");
+        process.exit(1);
       }
 
-      console.error(chalk.red(`\n❌ Error: ${message}\n`))
-      process.exit(1)
+      console.error(chalk.red(`\n❌ Error: ${message}\n`));
+      process.exit(1);
     }
-  })
+  });
 
-program.parse()
+program.parse();

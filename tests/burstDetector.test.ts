@@ -7,6 +7,7 @@ function makeSnapshot(topicLag: number): LagSnapshot {
     groupId: 'test-group',
     broker: 'localhost:9092',
     collectedAt: new Date(),
+    groupState: 'Stable',
     partitions: [
       {
         topic: 'orders',

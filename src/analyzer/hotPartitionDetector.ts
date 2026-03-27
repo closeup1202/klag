@@ -1,31 +1,35 @@
-import type { LagSnapshot, RcaResult, HotPartitionDetail } from '../types/index.js'
+import type {
+  HotPartitionDetail,
+  LagSnapshot,
+  RcaResult,
+} from "../types/index.js";
 
-const HOT_PARTITION_THRESHOLD = 0.8
-const MIN_TOPIC_LAG = 10n
+const HOT_PARTITION_THRESHOLD = 0.8;
+const MIN_TOPIC_LAG = 10n;
 
 export function detectHotPartition(snapshot: LagSnapshot): RcaResult[] {
-  const { partitions } = snapshot
+  const { partitions } = snapshot;
 
-  if (partitions.length === 0) return []
+  if (partitions.length === 0) return [];
 
   // ── Group partitions by topic ────────────────────────────────
-  const topicMap = new Map<string, typeof partitions>()
+  const topicMap = new Map<string, typeof partitions>();
   for (const p of partitions) {
-    if (!topicMap.has(p.topic)) topicMap.set(p.topic, [])
-    topicMap.get(p.topic)!.push(p)
+    if (!topicMap.has(p.topic)) topicMap.set(p.topic, []);
+    topicMap.get(p.topic)?.push(p);
   }
 
-  const results: RcaResult[] = []
+  const results: RcaResult[] = [];
 
   for (const [topic, topicPartitions] of topicMap) {
     // Skip if only one partition — nothing to compare against
-    if (topicPartitions.length <= 1) continue
+    if (topicPartitions.length <= 1) continue;
 
-    const topicTotalLag = topicPartitions.reduce((sum, p) => sum + p.lag, 0n)
+    const topicTotalLag = topicPartitions.reduce((sum, p) => sum + p.lag, 0n);
 
     // Skip if the topic's total lag is 0 or less than MIN_TOPIC_LAG (10)
-    if (topicTotalLag === 0n) continue
-    if (topicTotalLag < MIN_TOPIC_LAG) continue
+    if (topicTotalLag === 0n) continue;
+    if (topicTotalLag < MIN_TOPIC_LAG) continue;
 
     // ── Calculate lag ratio per partition ───────────────────────
     const details: HotPartitionDetail[] = topicPartitions
@@ -35,26 +39,26 @@ export function detectHotPartition(snapshot: LagSnapshot): RcaResult[] {
         lag: p.lag,
         ratio: Number(p.lag) / Number(topicTotalLag),
       }))
-      .sort((a, b) => b.ratio - a.ratio)
+      .sort((a, b) => b.ratio - a.ratio);
 
-    const top = details[0]
-    if (!top || top.ratio < HOT_PARTITION_THRESHOLD) continue
+    const top = details[0];
+    if (!top || top.ratio < HOT_PARTITION_THRESHOLD) continue;
 
-    const ratioPercent = Math.round(top.ratio * 100)
-    const totalPartitionCount = topicPartitions.length
+    const ratioPercent = Math.round(top.ratio * 100);
+    const totalPartitionCount = topicPartitions.length;
 
     results.push({
-      type: 'HOT_PARTITION',
+      type: "HOT_PARTITION",
       topic,
       description:
         `partition-${top.partition} holds ${ratioPercent}% of lag ` +
         `(${top.lag.toLocaleString()} / ${topicTotalLag.toLocaleString()}) ` +
         `— 1 of ${totalPartitionCount} partitions is skewed`,
       suggestion:
-        'Consider reviewing the partition key distribution strategy or increasing the partition count',
+        "Consider reviewing the partition key distribution strategy or increasing the partition count",
       details,
-    })
+    });
   }
 
-  return results
+  return results;
 }

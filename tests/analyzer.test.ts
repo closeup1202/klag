@@ -15,6 +15,7 @@ function makeSnapshot(lags: number[]): LagSnapshot {
     groupId: 'test-group',
     broker: 'localhost:9092',
     collectedAt: new Date(),
+    groupState: 'Stable',
     partitions,
     totalLag: partitions.reduce((sum, p) => sum + p.lag, 0n),
   }

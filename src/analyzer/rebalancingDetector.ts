@@ -1,26 +1,26 @@
-import type { LagSnapshot, RcaResult } from '../types/index.js'
+import type { LagSnapshot, RcaResult } from "../types/index.js";
 
-const REBALANCING_STATES = ['PreparingRebalance', 'CompletingRebalance']
+const REBALANCING_STATES = ["PreparingRebalance", "CompletingRebalance"];
 
 export function detectRebalancing(snapshot: LagSnapshot): RcaResult | null {
-  const { groupState, totalLag } = snapshot
+  const { groupState, totalLag } = snapshot;
 
-  if (!REBALANCING_STATES.includes(groupState)) return null
-  if (totalLag === 0n) return null
+  if (!REBALANCING_STATES.includes(groupState)) return null;
+  if (totalLag === 0n) return null;
 
-  const isPrearing = groupState === 'PreparingRebalance'
+  const isPrearing = groupState === "PreparingRebalance";
 
   return {
-    type: 'REBALANCING',
-    topic: '*',
+    type: "REBALANCING",
+    topic: "*",
     description:
       `consumer group is currently in ${groupState} state` +
       ` — all consumption is paused during rebalancing`,
     suggestion: isPrearing
-      ? 'A new consumer joined or left the group. Lag may spike temporarily — monitor if it recovers after rebalancing completes'
-      : 'Rebalancing is completing. Lag should recover shortly once partition assignment is finalized',
+      ? "A new consumer joined or left the group. Lag may spike temporarily — monitor if it recovers after rebalancing completes"
+      : "Rebalancing is completing. Lag should recover shortly once partition assignment is finalized",
     details: [],
-  }
+  };
 }
 /*
 
