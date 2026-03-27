@@ -23,22 +23,22 @@ function makeSnapshot(lags: number[]): LagSnapshot {
 }
 
 describe('detectHotPartition', () => {
-  it('totalLag이 0이면 빈 배열 반환', () => {
+  it('returns empty array when totalLag is 0', () => {
     const snapshot = makeSnapshot([0, 0, 0])
     expect(detectHotPartition(snapshot)).toEqual([])
   })
 
-  it('파티션이 1개면 빈 배열 반환', () => {
+  it('returns empty array when there is only one partition', () => {
     const snapshot = makeSnapshot([100])
     expect(detectHotPartition(snapshot)).toEqual([])
   })
 
-  it('lag이 균등하게 분산되면 빈 배열 반환', () => {
+  it('returns empty array when lag is evenly distributed', () => {
     const snapshot = makeSnapshot([100, 100, 100])
     expect(detectHotPartition(snapshot)).toEqual([])
   })
 
-  it('단일 파티션에 80% 이상 집중되면 HOT_PARTITION 반환', () => {
+  it('returns HOT_PARTITION when a single partition has 80% or more of the lag', () => {
     const snapshot = makeSnapshot([800, 100, 100])
     const results = detectHotPartition(snapshot)
 
@@ -48,12 +48,12 @@ describe('detectHotPartition', () => {
     expect(results[0].details[0].ratio).toBeCloseTo(0.8)
   })
 
-  it('79% 집중이면 빈 배열 반환 (threshold 경계값)', () => {
+  it('returns empty array when concentration is 79% (threshold boundary)', () => {
     const snapshot = makeSnapshot([790, 110, 100])
     expect(detectHotPartition(snapshot)).toEqual([])
   })
 
-  it('HOT_PARTITION 결과에 topic, description, suggestion이 포함된다', () => {
+  it('HOT_PARTITION result includes topic, description, and suggestion', () => {
     const snapshot = makeSnapshot([900, 50, 50])
     const results = detectHotPartition(snapshot)
 
@@ -62,9 +62,9 @@ describe('detectHotPartition', () => {
     expect(results[0].suggestion).toBeTruthy()
   })
 
-  it('topic이 여러 개면 topic별로 독립적으로 분석한다', () => {
-    // orders topic: partition-0에 90% 집중 → HOT_PARTITION
-    // payments topic: 균등 분산 → 감지 안 됨
+  it('analyzes each topic independently when there are multiple topics', () => {
+    // orders topic: 90% concentrated in partition-0 → HOT_PARTITION
+    // payments topic: evenly distributed → not detected
     const snapshot: LagSnapshot = {
       groupId: 'test-group',
       broker: 'localhost:9092',

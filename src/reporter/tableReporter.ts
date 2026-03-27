@@ -47,7 +47,7 @@ export function printLagTable(
   // ── Header ───────────────────────────────────────────────────
   if (!watchMode) {
     console.log('')
-    console.log(chalk.bold.cyan('⚡ kafka-why') + chalk.gray('  v0.1.0'))
+    console.log(chalk.bold.cyan('⚡ klag') + chalk.gray('  v0.1.0'))
     console.log('')
   }
   console.log(chalk.bold('🔍 Consumer Group: ') + chalk.white(groupId))

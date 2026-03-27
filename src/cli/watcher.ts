@@ -23,7 +23,7 @@ function printWatchHeader(intervalMs: number, updatedAt: Date): void {
   })
 
   console.log(
-    chalk.bold.cyan('⚡ kafka-why') +
+    chalk.bold.cyan('⚡ klag') +
     chalk.gray('  v0.1.0') +
     '  │  ' +
     chalk.yellow('watch mode') +
@@ -38,7 +38,7 @@ function printWatchHeader(intervalMs: number, updatedAt: Date): void {
 function printWatchError(message: string, retryCount: number, retryIn: number): void {
   clearScreen()
   console.log(
-    chalk.bold.cyan('⚡ kafka-why') +
+    chalk.bold.cyan('⚡ klag') +
     chalk.gray('  v0.1.0') +
     '  │  ' +
     chalk.yellow('watch mode') +
@@ -54,7 +54,7 @@ function printWatchError(message: string, retryCount: number, retryIn: number): 
 function printWatchFatal(message: string): void {
   clearScreen()
   console.log(
-    chalk.bold.cyan('⚡ kafka-why') +
+    chalk.bold.cyan('⚡ klag') +
     chalk.gray('  v0.1.0') +
     '  │  ' +
     chalk.yellow('watch mode')

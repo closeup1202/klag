@@ -12,7 +12,7 @@ import { startWatch } from './watcher.js'
 const program = new Command()
 
 program
-  .name('kafka-why')
+  .name('klag')
   .description('Kafka consumer lag root cause analyzer')
   .version('0.1.0')
   .requiredOption('-b, --broker <host:port>', 'Kafka broker address', parseBroker, 'localhost:9092')

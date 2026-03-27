@@ -1,13 +1,13 @@
-# kafka-why
+# klag
 
 > Know **why** your Kafka consumer lag is growing — in 5 seconds from the terminal
 
-[![npm version](https://badge.fury.io/js/kafka-why.svg)](https://www.npmjs.com/package/kafka-why)
+[![npm version](https://badge.fury.io/js/klag.svg)](https://www.npmjs.com/package/klag)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Compared to existing tools
 
-| | Burrow | Kafka UI | **kafka-why** |
+| | Burrow | Kafka UI | **klag** |
 |--|--------|----------|---------------|
 | Lag measurement | ✅ | ✅ | ✅ |
 | Root cause detection | ❌ | ❌ | ✅ |
@@ -16,14 +16,12 @@
 
 ## Run without installation
 ```bash
-npx kafka-why --broker localhost:9092 --group my-service
-# or use the short alias
-npx kw --broker localhost:9092 --group my-service
+npx klag --broker localhost:9092 --group my-service
 ```
 
 ## Output example
 ```
-⚡ kafka-why  v0.1.0
+⚡ klag  v0.1.0
 
 🔍 Consumer Group: my-service
    Broker:         localhost:9092
@@ -51,24 +49,23 @@ npx kw --broker localhost:9092 --group my-service
 
 ## Installation
 ```bash
-npm install -g kafka-why
+npm install -g klag
 ```
 
 ## Usage
 ```bash
 # Basic usage
-kafka-why --broker localhost:9092 --group my-service
-kw --broker localhost:9092 --group my-service
+klag --broker localhost:9092 --group my-service
 
 # Fast mode without rate sampling
-kw --broker localhost:9092 --group my-service --no-rate
+klag --broker localhost:9092 --group my-service --no-rate
 
 # Watch mode (auto-refresh every N seconds)
-kw --broker localhost:9092 --group my-service --watch
-kw --broker localhost:9092 --group my-service --watch --interval 3000
+klag --broker localhost:9092 --group my-service --watch
+klag --broker localhost:9092 --group my-service --watch --interval 3000
 
 # JSON output (CI/pipeline integration)
-kw --broker localhost:9092 --group my-service --json
+klag --broker localhost:9092 --group my-service --json
 ```
 
 ## Options
@@ -106,4 +103,4 @@ Occurs when traffic spikes and the consumer cannot keep up.
 
 ## License
 
-MIT © [closeup1202](https://github.com/closeup1202/kafka-why)
+MIT © [closeup1202](https://github.com/closeup1202/klag)

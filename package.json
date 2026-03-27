@@ -1,11 +1,10 @@
 {
-  "name": "kafka-why",
+  "name": "klag",
   "version": "0.1.0",
   "description": "Kafka consumer lag root cause analyzer",
   "type": "module",
   "bin": {
-    "kafka-why": "./dist/cli/index.js",
-    "kw": "./dist/cli/index.js"
+    "klag": "./dist/cli/index.js"
   },
   "files": [
     "dist"
@@ -33,9 +32,9 @@
   "license": "MIT",
     "repository": {
     "type": "git",
-    "url": "https://github.com/closeup1202/kafka-why-cli"
+    "url": "https://github.com/closeup1202/klag"
   },
-  "homepage": "https://github.com/closeup1202/kafka-why-cli#readme",
+  "homepage": "https://github.com/closeup1202/klag#readme",
   "dependencies": {
     "chalk": "^5.6.2",
     "cli-table3": "^0.6.5",

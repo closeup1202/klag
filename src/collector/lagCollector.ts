@@ -12,7 +12,7 @@ import type { KafkaOptions, LagSnapshot, PartitionLag } from '../types/index.js'
  */
 export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
   const kafka = new Kafka({
-    clientId: 'kafka-why',
+    clientId: 'klag',
     brokers: [options.broker],
     logLevel: logLevel.NOTHING, // Hide kafkajs internal logs in CLI
     requestTimeout: options.timeoutMs ?? 5000,

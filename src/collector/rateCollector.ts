@@ -17,7 +17,7 @@ export async function collectRate(options: KafkaOptions): Promise<RateSnapshot> 
   const intervalSec = intervalMs / 1000
 
   const kafka = new Kafka({
-    clientId: 'kafka-why-rate',
+    clientId: 'klag-rate',
     brokers: [options.broker],
     logLevel: logLevel.NOTHING,
     requestTimeout: options.timeoutMs ?? 5000,

@@ -7,7 +7,7 @@ export function detectHotPartition(snapshot: LagSnapshot): RcaResult[] {
 
   if (partitions.length === 0) return []
 
-  // ── topic별로 파티션 그룹화 ───────────────────────────────────
+  // ── Group partitions by topic ────────────────────────────────
   const topicMap = new Map<string, typeof partitions>()
   for (const p of partitions) {
     if (!topicMap.has(p.topic)) topicMap.set(p.topic, [])
@@ -17,15 +17,15 @@ export function detectHotPartition(snapshot: LagSnapshot): RcaResult[] {
   const results: RcaResult[] = []
 
   for (const [topic, topicPartitions] of topicMap) {
-    // 파티션이 1개면 비교 대상 없음
+    // Skip if only one partition — nothing to compare against
     if (topicPartitions.length <= 1) continue
 
     const topicTotalLag = topicPartitions.reduce((sum, p) => sum + p.lag, 0n)
 
-    // topic 자체 lag이 0이면 스킵
+    // Skip if the topic's total lag is 0
     if (topicTotalLag === 0n) continue
 
-    // ── 파티션별 비율 계산 ──────────────────────────────────────
+    // ── Calculate lag ratio per partition ───────────────────────
     const details: HotPartitionDetail[] = topicPartitions
       .filter((p) => p.lag > 0n)
       .map((p) => ({
@@ -45,11 +45,11 @@ export function detectHotPartition(snapshot: LagSnapshot): RcaResult[] {
       type: 'HOT_PARTITION',
       topic,
       description:
-        `partition-${top.partition} 에 lag의 ${ratioPercent}% 집중 ` +
+        `partition-${top.partition} holds ${ratioPercent}% of lag ` +
         `(${top.lag.toLocaleString()} / ${topicTotalLag.toLocaleString()}) ` +
-        `— ${totalPartitionCount}개 파티션 중 1개에 쏠림`,
+        `— 1 of ${totalPartitionCount} partitions is skewed`,
       suggestion:
-        'partition 키 분산 전략 검토 또는 파티션 수 증가를 고려해보세요',
+        'Consider reviewing the partition key distribution strategy or increasing the partition count',
       details,
     })
   }
