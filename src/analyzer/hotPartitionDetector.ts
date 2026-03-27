@@ -1,6 +1,7 @@
 import type { LagSnapshot, RcaResult, HotPartitionDetail } from '../types/index.js'
 
 const HOT_PARTITION_THRESHOLD = 0.8
+const MIN_TOPIC_LAG = 10n
 
 export function detectHotPartition(snapshot: LagSnapshot): RcaResult[] {
   const { partitions } = snapshot
@@ -22,8 +23,9 @@ export function detectHotPartition(snapshot: LagSnapshot): RcaResult[] {
 
     const topicTotalLag = topicPartitions.reduce((sum, p) => sum + p.lag, 0n)
 
-    // Skip if the topic's total lag is 0
+    // Skip if the topic's total lag is 0 or less than MIN_TOPIC_LAG (10)
     if (topicTotalLag === 0n) continue
+    if (topicTotalLag < MIN_TOPIC_LAG) continue
 
     // ── Calculate lag ratio per partition ───────────────────────
     const details: HotPartitionDetail[] = topicPartitions

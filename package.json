@@ -4,7 +4,7 @@
   "description": "Kafka consumer lag root cause analyzer",
   "type": "module",
   "bin": {
-    "klag": "./dist/cli/index.js"
+    "klag": "dist/cli/index.js"
   },
   "files": [
     "dist"
@@ -30,9 +30,9 @@
     "kafkajs"
   ],
   "license": "MIT",
-    "repository": {
+  "repository": {
     "type": "git",
-    "url": "https://github.com/closeup1202/klag"
+    "url": "git+https://github.com/closeup1202/klag.git"
   },
   "homepage": "https://github.com/closeup1202/klag#readme",
   "dependencies": {
