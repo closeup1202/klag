@@ -23,6 +23,7 @@ export interface LagSnapshot {
   collectedAt: Date
   partitions: PartitionLag[]
   totalLag: bigint
+  groupState: string
 }
 
 // ─── Per-partition rate info ──────────────────────────────────────────────
@@ -49,7 +50,7 @@ export function classifyLag(lag: bigint): LagLevel {
 }
 
 // ─── RCA analysis result ──────────────────────────────────────────────────
-export type RcaType = 'HOT_PARTITION' | 'PRODUCER_BURST' | 'NONE'
+export type RcaType = 'HOT_PARTITION' | 'PRODUCER_BURST' | 'SLOW_CONSUMER' | 'REBALANCING' | 'NONE'
 
 export interface RcaResult {
   type: RcaType

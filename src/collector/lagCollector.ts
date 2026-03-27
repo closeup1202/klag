@@ -133,7 +133,9 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
       collectedAt: new Date(),
       partitions,
       totalLag,
+      groupState: group.state,
     }
+    
   } finally {
     // Always disconnect regardless of success or failure
     await admin.disconnect()
