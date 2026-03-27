@@ -94,6 +94,8 @@ export function printLagTable(
     style: { head: [], border: ['grey'] },
   })
 
+  let lastTopic = ''
+
   for (const p of partitions) {
     const level = classifyLag(p.lag)
     const lagStr = level === 'HIGH'
@@ -110,8 +112,11 @@ export function printLagTable(
         ]
       : []
 
+    const topicDisplay = p.topic !== lastTopic ? p.topic : ''
+    lastTopic = p.topic
+
     table.push([
-      p.topic,
+      topicDisplay,
       String(p.partition),
       formatLag(p.committedOffset),
       formatLag(p.logEndOffset),
