@@ -14,6 +14,7 @@ export interface PartitionLag {
   committedOffset: bigint // Offset committed by the consumer
   lag: bigint
   lagRatio?: number // This partition's share of total lag (0~1)
+  lagDiff?: bigint
 }
 
 // ─── Consumer group total lag collection result ───────────────────────────

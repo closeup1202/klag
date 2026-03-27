@@ -3,7 +3,7 @@ import { collectLag } from '../collector/lagCollector.js'
 import { collectRate } from '../collector/rateCollector.js'
 import { analyze } from '../analyzer/index.js'
 import { printLagTable } from '../reporter/tableReporter.js'
-import type { KafkaOptions } from '../types/index.js'
+import type { KafkaOptions, LagSnapshot } from '../types/index.js'
 
 const MAX_RETRIES = 3
 
@@ -28,7 +28,7 @@ function printWatchHeader(intervalMs: number, updatedAt: Date): void {
     '  │  ' +
     chalk.yellow('watch mode') +
     '  │  ' +
-    chalk.gray(`refresh every ${intervalSec}s`) +
+    chalk.gray(`${intervalSec}s refresh`) +
     '  │  ' +
     chalk.gray('Ctrl+C to exit')
   )
@@ -61,14 +61,31 @@ function printWatchFatal(message: string): void {
   )
   console.log('')
   console.error(chalk.red(`   ❌ Error: ${message}`))
-  console.error(chalk.red(`   All ${MAX_RETRIES}/${MAX_RETRIES} retries failed — exiting watch mode`))
+  console.error(chalk.red(`   All ${MAX_RETRIES} retries failed — exiting watch mode`))
   console.log('')
+}
+
+// ── 이전 snapshot과 비교해서 lagDiff 계산 ─────────────────────────
+function applyDiff(current: LagSnapshot, previous: LagSnapshot): LagSnapshot {
+  const prevMap = new Map<string, bigint>()
+  for (const p of previous.partitions) {
+    prevMap.set(`${p.topic}-${p.partition}`, p.lag)
+  }
+
+  const partitions = current.partitions.map((p) => {
+    const prevLag = prevMap.get(`${p.topic}-${p.partition}`)
+    const lagDiff = prevLag !== undefined ? p.lag - prevLag : undefined
+    return { ...p, lagDiff }
+  })
+
+  return { ...current, partitions }
 }
 
 async function runOnce(
   options: KafkaOptions,
-  noRate: boolean
-): Promise<void> {
+  noRate: boolean,
+  previous?: LagSnapshot
+): Promise<LagSnapshot> {
   const snapshot = await collectLag(options)
 
   let rateSnapshot = undefined
@@ -78,9 +95,14 @@ async function runOnce(
 
   const rcaResults = analyze(snapshot, rateSnapshot)
 
+  // 이전 snapshot이 있으면 diff 계산
+  const snapshotWithDiff = previous ? applyDiff(snapshot, previous) : snapshot
+
   clearScreen()
   printWatchHeader(options.intervalMs ?? 5000, snapshot.collectedAt)
-  printLagTable(snapshot, rcaResults, rateSnapshot, true)
+  printLagTable(snapshotWithDiff, rcaResults, rateSnapshot, true)
+
+  return snapshot  // 다음 루프를 위해 diff 없는 원본 반환
 }
 
 function printCountdown(seconds: number): Promise<void> {
@@ -126,9 +148,8 @@ export async function startWatch(
   options: KafkaOptions,
   noRate: boolean
 ): Promise<void> {
-  // SIGINT handler
   process.on('SIGINT', () => {
-    console.log(chalk.gray('\n\n  watch mode stopped\n'))
+    console.log(chalk.gray('\n\n  Watch mode exited\n'))
     process.exit(0)
   })
 
@@ -138,36 +159,25 @@ export async function startWatch(
   process.stdout.write(chalk.gray('  Connecting to broker...'))
 
   let errorCount = 0
+  let previousSnapshot: LagSnapshot | undefined = undefined
 
-  // ── main loop ─────────────────────────────────────────────────
   while (true) {
     try {
-      await runOnce(options, noRate)
-      errorCount = 0  // reset error count on success
+      // 이전 snapshot 전달 → diff 계산
+      previousSnapshot = await runOnce(options, noRate, previousSnapshot)
+      errorCount = 0
       await printCountdown(waitSec)
     } catch (err) {
       errorCount++
       const message = getFriendlyMessage(err, options.broker)
 
-      // exceeded max retries → exit
       if (errorCount >= MAX_RETRIES) {
         printWatchFatal(message)
         process.exit(1)
       }
 
-      // retry
       printWatchError(message, errorCount, waitSec)
       await printCountdown(waitSec)
     }
   }
 }
-/*
-
-Flow summary:
-
-success         → reset errorCount → continue normal loop
-1st failure     → "Retrying 1/3... in Ns" → countdown → retry
-2nd failure     → "Retrying 2/3... in Ns" → countdown → retry
-3rd failure     → "All 3/3 retries failed — exiting watch mode" → exit(1)
-success in between → reset errorCount to 0 → continue normal loop
-*/

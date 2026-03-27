@@ -18,6 +18,13 @@ function formatRate(rate: number): string {
   return rate < 0.1 ? '0' : `${rate.toFixed(1)} msg/s`
 }
 
+function formatTrend(lagDiff?: bigint): string {
+  if (lagDiff === undefined) return chalk.gray('  -  ')
+  if (lagDiff === 0n) return chalk.gray('  =  ')
+  if (lagDiff > 0n) return chalk.red(`▲ +${lagDiff.toLocaleString()}`)
+  return chalk.green(`▼ ${lagDiff.toLocaleString()}`)
+}
+
 function groupStatus(totalLag: bigint): string {
   const level = classifyLag(totalLag)
   if (level === 'OK')   return chalk.green('✅ OK')
@@ -32,6 +39,16 @@ export function printLagTable(
   watchMode = false
 ): void {
   const { groupId, broker, collectedAt, partitions, totalLag } = snapshot
+
+  // ── Header ──────────────────────────────────────────────────────
+  if (!watchMode) {
+    console.log('')
+    console.log(chalk.bold.cyan('⚡ klag') + chalk.gray('  v0.1.0'))
+    console.log('')
+  }
+  console.log(chalk.bold('🔍 Consumer Group: ') + chalk.white(groupId))
+  console.log(chalk.bold('   Broker:         ') + chalk.white(broker))
+
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
   const localTime = collectedAt.toLocaleString('sv-SE', {
     timeZone: tz,
@@ -43,29 +60,19 @@ export function printLagTable(
     second: '2-digit',
     hour12: false,
   }).replace('T', ' ')
-
-  // ── Header ───────────────────────────────────────────────────
-  if (!watchMode) {
-    console.log('')
-    console.log(chalk.bold.cyan('⚡ klag') + chalk.gray('  v0.1.0'))
-    console.log('')
-  }
-  console.log(chalk.bold('🔍 Consumer Group: ') + chalk.white(groupId))
-  console.log(chalk.bold('   Broker:         ') + chalk.white(broker))
   console.log(chalk.bold('   Collected At:   ') + chalk.gray(`${localTime} (${tz})`))
   console.log('')
 
-  // ── Group status summary ──────────────────────────────────────
+  // ── Group State Summary ────────────────────────────────────────────
   const status = groupStatus(totalLag)
   const totalStr = chalk.bold(formatLag(totalLag))
   console.log(`   Group Status : ${status}   Total Lag : ${totalStr}`)
   console.log('')
 
-  // ── Per-partition table ───────────────────────────────────────
-  // Add rate columns if rateSnapshot is available
+  // ── Table Per Partition ────────────────────────────────────────────
   const hasRate = !!rateSnapshot && rateSnapshot.partitions.length > 0
+  const hasTrend = watchMode && partitions.some((p) => p.lagDiff !== undefined)
 
-  // Build a map for fast rate lookup
   const rateMap = new Map<string, { produceRate: number; consumeRate: number }>()
   if (hasRate) {
     for (const r of rateSnapshot!.partitions) {
@@ -79,16 +86,17 @@ export function printLagTable(
     chalk.bold('Committed Offset'),
     chalk.bold('Log-End Offset'),
     chalk.bold('Lag'),
+    ...(hasTrend ? [chalk.bold('Trend')] : []),
     chalk.bold('Status'),
-    ...(hasRate
-      ? [chalk.bold('Produce Rate'), chalk.bold('Consume Rate')]
-      : []),
+    ...(hasRate ? [chalk.bold('Produce Rate'), chalk.bold('Consume Rate')] : []),
   ]
 
   const table = new Table({
     head,
     colAligns: [
-      'left', 'right', 'right', 'right', 'right', 'center',
+      'left', 'right', 'right', 'right', 'right',
+      ...(hasTrend ? ['right'] : []),
+      'center',
       ...(hasRate ? ['right', 'right'] : []),
     ] as HorizontalAlignment[],
     style: { head: [], border: ['grey'] },
@@ -121,6 +129,7 @@ export function printLagTable(
       formatLag(p.committedOffset),
       formatLag(p.logEndOffset),
       lagStr,
+      ...(hasTrend ? [formatTrend(p.lagDiff)] : []),
       LEVEL_ICON[level],
       ...rateColumns,
     ])
@@ -129,7 +138,7 @@ export function printLagTable(
   console.log(table.toString())
   console.log('')
 
-  // ── RCA section ──────────────────────────────────────────────
+  // ── RCA Section ──────────────────────────────────────────────────
   if (rcaResults.length === 0) return
 
   console.log(chalk.bold('🔎 Root Cause Analysis'))
