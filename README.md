@@ -157,7 +157,8 @@ All consumption pauses during rebalancing, which can cause a temporary lag spike
 - [x] v0.1.0 — lag collection, hot partition, producer burst, slow consumer, rebalancing detection, watch mode with lag trend
 - [x] v0.2.0 — SSL/SASL authentication, `.klagrc` config file support
 - [x] v0.3.0 — time-to-drain severity classification, Drain column per partition
-- [ ] v0.4.0 — multi-group monitoring
+- [x] v0.3.1 — interactive consumer group picker
+- [ ] v0.4.0 — `OFFSET_NOT_MOVING` detector (offset commit stall detection)
 - [ ] v0.5.0 — Slack alerts, Prometheus export
 
 ## License
