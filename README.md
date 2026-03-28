@@ -16,7 +16,7 @@
 
 ## Run without installation
 ```bash
-npx klag --broker localhost:9092 --group my-service
+npx @closeup1202/klag --broker localhost:9092 --group my-service
 ```
 
 ## Output example
@@ -49,7 +49,7 @@ npx klag --broker localhost:9092 --group my-service
 
 ## Installation
 ```bash
-npm install -g klag
+npm install -g @closeup1202/klag
 ```
 
 ## Usage
