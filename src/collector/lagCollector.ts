@@ -46,7 +46,9 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
         const decoded = AssignerProtocol.MemberAssignment.decode(
           member.memberAssignment,
         );
-        for (const [topic, partitions] of Object.entries(decoded?.assignment ?? {})) {
+        for (const [topic, partitions] of Object.entries(
+          decoded?.assignment ?? {},
+        )) {
           if (!topicPartitionMap.has(topic)) {
             topicPartitionMap.set(topic, new Set());
           }

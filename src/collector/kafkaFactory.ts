@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { Kafka, logLevel } from "kafkajs";
 import type { SASLOptions } from "kafkajs";
+import { Kafka, logLevel } from "kafkajs";
 import type { KafkaOptions } from "../types/index.js";
 
 /**
@@ -20,15 +20,20 @@ export function createKafkaClient(
     retry: { retries: 1 },
     ...(options.ssl && { ssl: buildSslConfig(options.ssl) }),
     ...(options.sasl?.password && {
-      sasl: buildSaslConfig(options.sasl as Required<NonNullable<KafkaOptions["sasl"]>>),
+      sasl: buildSaslConfig(
+        options.sasl as Required<NonNullable<KafkaOptions["sasl"]>>,
+      ),
     }),
   });
 }
 
-function buildSaslConfig(sasl: Required<NonNullable<KafkaOptions["sasl"]>>): SASLOptions {
+function buildSaslConfig(
+  sasl: Required<NonNullable<KafkaOptions["sasl"]>>,
+): SASLOptions {
   const { mechanism, username, password } = sasl;
   if (mechanism === "plain") return { mechanism: "plain", username, password };
-  if (mechanism === "scram-sha-256") return { mechanism: "scram-sha-256", username, password };
+  if (mechanism === "scram-sha-256")
+    return { mechanism: "scram-sha-256", username, password };
   return { mechanism: "scram-sha-512", username, password };
 }
 
