@@ -2,7 +2,7 @@
 
 > Know **why** your Kafka consumer lag is growing — in 5 seconds from the terminal
 
-[![npm version](https://badge.fury.io/js/klag.svg)](https://www.npmjs.com/package/klag)
+[![npm version](https://badge.fury.io/js/klag.svg)](https://www.npmjs.com/package/@closeup1202/klag)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Compared to existing tools
@@ -21,7 +21,7 @@ npx @closeup1202/klag --broker localhost:9092 --group my-service
 
 ## Output example
 ```
-⚡ klag  v0.1.0
+⚡ klag 0.2.0
 
 🔍 Consumer Group: my-service
    Broker:         localhost:9092
