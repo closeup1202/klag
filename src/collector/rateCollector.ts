@@ -84,6 +84,8 @@ export async function collectRate(
         const committedDiff =
           (com2.get(partition) ?? 0n) - (com1.get(partition) ?? 0n);
 
+        // Number() is safe here: offset diffs over a single sampling window are
+        // far below Number.MAX_SAFE_INTEGER (2^53), even at very high throughput.
         partitions.push({
           topic,
           partition,

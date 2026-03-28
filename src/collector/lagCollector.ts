@@ -48,17 +48,23 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
 
     for (const member of group.members) {
       if (!member.memberAssignment) continue;
-      const decoded = AssignerProtocol.MemberAssignment.decode(
-        member.memberAssignment,
-      );
-
-      for (const [topic, partitions] of Object.entries(decoded?.assignment)) {
-        if (!topicPartitionMap.has(topic)) {
-          topicPartitionMap.set(topic, new Set());
+      // AssignerProtocol is not a formally stable public API — wrap decode so
+      // that a future KafkaJS change degrades gracefully to fetchOffsets fallback.
+      try {
+        const decoded = AssignerProtocol.MemberAssignment.decode(
+          member.memberAssignment,
+        );
+        for (const [topic, partitions] of Object.entries(decoded?.assignment)) {
+          if (!topicPartitionMap.has(topic)) {
+            topicPartitionMap.set(topic, new Set());
+          }
+          for (const p of partitions as number[]) {
+            topicPartitionMap.get(topic)?.add(p);
+          }
         }
-        for (const p of partitions as number[]) {
-          topicPartitionMap.get(topic)?.add(p);
-        }
+      } catch {
+        // Decode failed — topic/partition info will be supplemented from
+        // fetchOffsets below (covers Empty-state groups too).
       }
     }
 

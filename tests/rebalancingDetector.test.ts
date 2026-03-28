@@ -22,22 +22,22 @@ function makeSnapshot(groupState: string, totalLag: number): LagSnapshot {
 }
 
 describe('detectRebalancing', () => {
-  it('Stable 상태면 null 반환', () => {
+  it('returns null when group state is Stable', () => {
     const snapshot = makeSnapshot('Stable', 100)
     expect(detectRebalancing(snapshot)).toBeNull()
   })
 
-  it('Empty 상태면 null 반환', () => {
+  it('returns null when group state is Empty', () => {
     const snapshot = makeSnapshot('Empty', 100)
     expect(detectRebalancing(snapshot)).toBeNull()
   })
 
-  it('totalLag이 0이면 null 반환', () => {
+  it('returns null when totalLag is 0', () => {
     const snapshot = makeSnapshot('PreparingRebalance', 0)
     expect(detectRebalancing(snapshot)).toBeNull()
   })
 
-  it('PreparingRebalance 상태면 REBALANCING 반환', () => {
+  it('returns REBALANCING when group state is PreparingRebalance', () => {
     const snapshot = makeSnapshot('PreparingRebalance', 100)
     const result = detectRebalancing(snapshot)
 
@@ -45,7 +45,7 @@ describe('detectRebalancing', () => {
     expect(result?.type).toBe('REBALANCING')
   })
 
-  it('CompletingRebalance 상태면 REBALANCING 반환', () => {
+  it('returns REBALANCING when group state is CompletingRebalance', () => {
     const snapshot = makeSnapshot('CompletingRebalance', 100)
     const result = detectRebalancing(snapshot)
 
@@ -53,7 +53,7 @@ describe('detectRebalancing', () => {
     expect(result?.type).toBe('REBALANCING')
   })
 
-  it('PreparingRebalance와 CompletingRebalance는 다른 suggestion을 가진다', () => {
+  it('PreparingRebalance and CompletingRebalance produce different suggestions', () => {
     const preparing = detectRebalancing(makeSnapshot('PreparingRebalance', 100))
     const completing = detectRebalancing(makeSnapshot('CompletingRebalance', 100))
 

@@ -40,6 +40,17 @@ describe('parseBroker', () => {
   it('throws error if port is not numeric', () => {
     expect(() => parseBroker('localhost:abc')).toThrow('format is invalid')
   })
+
+  it('throws error if port is out of range', () => {
+    expect(() => parseBroker('localhost:0')).toThrow('1 and 65535')
+    expect(() => parseBroker('localhost:65536')).toThrow('1 and 65535')
+    expect(() => parseBroker('localhost:99999')).toThrow('1 and 65535')
+  })
+
+  it('accepts boundary port values', () => {
+    expect(parseBroker('localhost:1')).toBe('localhost:1')
+    expect(parseBroker('localhost:65535')).toBe('localhost:65535')
+  })
 })
 
 describe('parseTimeout', () => {

@@ -18,25 +18,14 @@ export function analyze(
   if (rebalancing) results.push(rebalancing);
 
   if (rateSnapshot) {
-    // ── Detect Producer Burst ─────────────────────────────────────
-    const burst = detectProducerBurst(snapshot, rateSnapshot);
-    if (burst) results.push(burst);
-
-    // ── Slow Consumer — skip if BURST already detected for same topic ──────
-    const slow = detectSlowConsumer(snapshot, rateSnapshot);
-    if (
-      slow &&
-      !results.some(
-        (r) => r.topic === slow.topic && r.type === "PRODUCER_BURST",
-      )
-    ) {
-      results.push(slow);
-    }
+    // PRODUCER_BURST and SLOW_CONSUMER have mutually exclusive consume rate thresholds,
+    // so they cannot fire for the same topic simultaneously — no dedup needed.
+    results.push(...detectProducerBurst(snapshot, rateSnapshot));
+    results.push(...detectSlowConsumer(snapshot, rateSnapshot));
   }
 
   // ── Detect Hot Partition (By Topic) ──────────────────────────────────────
-  const hotPartitions = detectHotPartition(snapshot);
-  results.push(...hotPartitions);
+  results.push(...detectHotPartition(snapshot));
 
   return results;
 }

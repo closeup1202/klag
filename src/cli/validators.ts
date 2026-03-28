@@ -9,10 +9,16 @@ export function parseInterval(value: string): number {
 }
 
 export function parseBroker(value: string): string {
-  const pattern = /^[^:]+:\d+$/;
-  if (!pattern.test(value)) {
+  const match = /^[^:]+:(\d+)$/.exec(value);
+  if (!match) {
     throw new InvalidArgumentError(
       "--broker format is invalid. Example: localhost:9092",
+    );
+  }
+  const port = parseInt(match[1], 10);
+  if (port < 1 || port > 65535) {
+    throw new InvalidArgumentError(
+      "--broker port must be between 1 and 65535.",
     );
   }
   return value;

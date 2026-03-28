@@ -6,10 +6,10 @@ const STALLED_CONSUME_RATE = 0.1; // Treat as effectively stalled
 export function detectSlowConsumer(
   snapshot: LagSnapshot,
   rateSnapshot: RateSnapshot,
-): RcaResult | null {
+): RcaResult[] {
   const { partitions: ratePartitions } = rateSnapshot;
 
-  if (ratePartitions.length === 0) return null;
+  if (ratePartitions.length === 0) return [];
 
   const topicRateMap = new Map<
     string,
@@ -26,6 +26,8 @@ export function detectSlowConsumer(
     entry.totalConsume += p.consumeRate;
   }
 
+  const results: RcaResult[] = [];
+
   for (const [topic, rates] of topicRateMap) {
     const { totalProduce, totalConsume } = rates;
 
@@ -33,26 +35,22 @@ export function detectSlowConsumer(
     if (totalProduce < MIN_PRODUCE_RATE) continue;
     if (totalConsume >= STALLED_CONSUME_RATE) continue;
 
-    // Overlap with PRODUCER_BURST is prevented in the analyzer orchestrator;
-    // this detector focuses solely on the fully-stalled consume case
     const topicLag = snapshot.partitions
       .filter((p) => p.topic === topic)
       .reduce((sum, p) => sum + p.lag, 0n);
 
     if (topicLag === 0n) continue;
 
-    const produceStr = totalProduce.toFixed(1);
-
-    return {
+    results.push({
       type: "SLOW_CONSUMER",
       topic,
       description:
-        `consumer has stalled — produce rate ${produceStr} msg/s but consume rate is near 0` +
+        `consumer has stalled — produce rate ${totalProduce.toFixed(1)} msg/s but consume rate is near 0` +
         ` — messages are accumulating with no consumption`,
       suggestion:
         "Check if consumer process is alive, look for errors in consumer logs, or check for long GC pauses",
-    };
+    });
   }
 
-  return null;
+  return results;
 }

@@ -87,8 +87,16 @@ When 80% or more of total lag is concentrated on a single partition.
 Occurs when producer key distribution is uneven (key skew).
 
 ### `[PRODUCER_BURST]`
-When produce rate is at least 2x the consume rate.
+When produce rate is at least 2x the consume rate (and the consumer is still running).
 Occurs when traffic spikes and the consumer cannot keep up.
+
+### `[SLOW_CONSUMER]`
+When the produce rate is active but the consume rate has dropped to near zero.
+Occurs when the consumer process has stalled, crashed, or is blocked (e.g., long GC pause).
+
+### `[REBALANCING]`
+When the consumer group is in `PreparingRebalance` or `CompletingRebalance` state.
+All consumption pauses during rebalancing, which can cause a temporary lag spike.
 
 ## Requirements
 
@@ -97,8 +105,8 @@ Occurs when traffic spikes and the consumer cannot keep up.
 
 ## Roadmap
 
-- [x] v0.1.0 — lag collection, hot partition, producer burst, watch mode
-- [ ] v0.2.0 — multi-group monitoring, lag trend tracking (▲▼)
+- [x] v0.1.0 — lag collection, hot partition, producer burst, slow consumer, rebalancing detection, watch mode with lag trend (▲▼)
+- [ ] v0.2.0 — multi-group monitoring
 - [ ] v0.3.0 — Slack alerts, Prometheus export
 
 ## License

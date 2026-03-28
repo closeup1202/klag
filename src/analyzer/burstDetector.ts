@@ -6,13 +6,16 @@ const BURST_RATIO_THRESHOLD = 2.0;
 // Only classify when produce rate is at or above this value (ignore very low traffic)
 const MIN_PRODUCE_RATE = 1.0;
 
+// When consume rate is below this, the consumer is considered stalled — SLOW_CONSUMER territory
+const STALLED_CONSUME_RATE = 0.1;
+
 export function detectProducerBurst(
   snapshot: LagSnapshot,
   rateSnapshot: RateSnapshot,
-): RcaResult | null {
+): RcaResult[] {
   const { partitions: ratePartitions } = rateSnapshot;
 
-  if (ratePartitions.length === 0) return null;
+  if (ratePartitions.length === 0) return [];
 
   // ── Aggregate produce/consume rate per topic ──────────────────
   const topicRateMap = new Map<
@@ -31,19 +34,18 @@ export function detectProducerBurst(
   }
 
   // ── Detect BURST per topic ────────────────────────────────────
+  const results: RcaResult[] = [];
+
   for (const [topic, rates] of topicRateMap) {
     const { totalProduce, totalConsume } = rates;
 
     // Ignore if produce rate is too low (idle)
     if (totalProduce < MIN_PRODUCE_RATE) continue;
 
-    // If consume rate is 0, detect directly instead of computing ratio
-    const isBurst =
-      totalConsume === 0
-        ? totalProduce >= MIN_PRODUCE_RATE
-        : totalProduce / totalConsume >= BURST_RATIO_THRESHOLD;
+    // If consume is near zero the consumer has stalled — leave that to SLOW_CONSUMER
+    if (totalConsume < STALLED_CONSUME_RATE) continue;
 
-    if (!isBurst) continue;
+    if (totalProduce / totalConsume < BURST_RATIO_THRESHOLD) continue;
 
     // Calculate totalLag for the topic
     const topicLag = snapshot.partitions
@@ -52,33 +54,28 @@ export function detectProducerBurst(
 
     if (topicLag === 0n) continue;
 
-    const produceStr = totalProduce.toFixed(1);
-    const consumeStr = totalConsume.toFixed(1);
-    const ratio =
-      totalConsume === 0 ? "∞" : (totalProduce / totalConsume).toFixed(1);
-
-    return {
+    results.push({
       type: "PRODUCER_BURST",
       topic,
       description:
-        `produce rate ${produceStr} msg/s vs consume rate ${consumeStr} msg/s ` +
-        `(${ratio}x difference) — consumer is falling behind ingestion rate`,
+        `produce rate ${totalProduce.toFixed(1)} msg/s vs consume rate ${totalConsume.toFixed(1)} msg/s ` +
+        `(${(totalProduce / totalConsume).toFixed(1)}x difference) — consumer is falling behind ingestion rate`,
       suggestion: "Consider increasing consumer instances or partition count",
-    };
+    });
   }
 
-  return null;
+  return results;
 }
 /*
 Decision logic summary:
 
-produceRate  10 msg/s
-consumeRate   3 msg/s
+produceRate  10 msg/s, consumeRate  3 msg/s
 ratio = 10 / 3 = 3.3x  >=  threshold 2.0x  →  PRODUCER_BURST ✅
 
-produceRate  10 msg/s
-consumeRate   6 msg/s
+produceRate  10 msg/s, consumeRate  6 msg/s
 ratio = 10 / 6 = 1.6x  <   threshold 2.0x  →  normal (temporary difference)
 
 produceRate   0.5 msg/s  <  MIN_PRODUCE_RATE 1.0  →  idle, ignored
+
+produceRate   5 msg/s, consumeRate  0.05 msg/s  <  STALLED_CONSUME_RATE  →  SLOW_CONSUMER handles this
 */
