@@ -2,7 +2,7 @@
 
 > Know **why** your Kafka consumer lag is growing — in 5 seconds from the terminal
 
-[![npm version](https://badge.fury.io/js/klag.svg)](https://www.npmjs.com/package/@closeup1202/klag)
+[![npm version](https://badge.fury.io/js/%40closeup1202%2Fklag.svg)](https://www.npmjs.com/package/@closeup1202/klag)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Compared to existing tools
