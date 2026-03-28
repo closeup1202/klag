@@ -10,6 +10,7 @@ import type { RateSnapshot } from "../types/index.js";
 import { VERSION } from "../types/index.js";
 import { buildAuthOptions } from "./authBuilder.js";
 import { loadConfig } from "./configLoader.js";
+import { pickGroup } from "./groupPicker.js";
 import {
   parseBroker,
   parseCertPath,
@@ -31,7 +32,10 @@ program
     parseBroker,
     "localhost:9092",
   )
-  .requiredOption("-g, --group <groupId>", "Consumer group ID")
+  .option(
+    "-g, --group <groupId>",
+    "Consumer group ID (omit to pick interactively)",
+  )
   .option(
     "-i, --interval <ms>",
     "Rate sampling interval in ms",
@@ -82,7 +86,6 @@ program
         options.broker !== "localhost:9092"
           ? options.broker
           : (rc.broker ?? options.broker);
-      const groupId = options.group ?? rc.group;
       const intervalMs =
         options.interval !== 5000
           ? options.interval
@@ -103,13 +106,13 @@ program
         saslPassword: options.saslPassword ?? rc.sasl?.password,
       });
 
-      const kafkaOptions = {
-        broker,
-        groupId,
-        intervalMs,
-        timeoutMs,
-        ...auth,
-      };
+      const baseOptions = { broker, intervalMs, timeoutMs, ...auth };
+
+      // ── Resolve group ID: CLI > .klagrc > interactive picker ───
+      const groupId =
+        options.group ?? rc.group ?? (await pickGroup(baseOptions));
+
+      const kafkaOptions = { ...baseOptions, groupId };
 
       // ── watch mode ─────────────────────────────────────────────
       if (options.watch) {
