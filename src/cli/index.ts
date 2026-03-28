@@ -8,7 +8,15 @@ import { collectRate } from "../collector/rateCollector.js";
 import { printLagTable } from "../reporter/tableReporter.js";
 import type { RateSnapshot } from "../types/index.js";
 import { VERSION } from "../types/index.js";
-import { parseBroker, parseInterval, parseTimeout } from "./validators.js";
+import { buildAuthOptions } from "./authBuilder.js";
+import { loadConfig } from "./configLoader.js";
+import {
+  parseBroker,
+  parseCertPath,
+  parseInterval,
+  parseSaslMechanism,
+  parseTimeout,
+} from "./validators.js";
 import { startWatch } from "./watcher.js";
 
 const program = new Command();
@@ -37,13 +45,70 @@ program
     "Skip rate sampling (faster, no PRODUCER_BURST detection)",
   )
   .option("--json", "Output raw JSON instead of table")
+  // ── SSL options ────────────────────────────────────────────────────────
+  .option("--ssl", "Enable SSL/TLS (uses system CA trust)")
+  .option("--ssl-ca <path>", "Path to CA certificate PEM file", parseCertPath)
+  .option(
+    "--ssl-cert <path>",
+    "Path to client certificate PEM file",
+    parseCertPath,
+  )
+  .option("--ssl-key <path>", "Path to client key PEM file", parseCertPath)
+  // ── SASL options ───────────────────────────────────────────────────────
+  .option(
+    "--sasl-mechanism <mechanism>",
+    "SASL mechanism: plain, scram-sha-256, scram-sha-512",
+    parseSaslMechanism,
+  )
+  .option("--sasl-username <username>", "SASL username")
+  .option(
+    "--sasl-password <password>",
+    "SASL password (prefer KLAG_SASL_PASSWORD env var)",
+  )
   .action(async (options) => {
     try {
+      // ── Load .klagrc (current dir → home dir) ──────────────────
+      const loaded = loadConfig();
+      const rc = loaded?.config ?? {};
+
+      if (loaded) {
+        process.stderr.write(
+          chalk.gray(`  Using config: ${loaded.loadedFrom}\n`),
+        );
+      }
+
+      // ── Merge: CLI args take precedence over .klagrc ───────────
+      const broker =
+        options.broker !== "localhost:9092"
+          ? options.broker
+          : (rc.broker ?? options.broker);
+      const groupId = options.group ?? rc.group;
+      const intervalMs =
+        options.interval !== 5000
+          ? options.interval
+          : (rc.interval ?? options.interval);
+      const timeoutMs =
+        options.timeout !== 5000
+          ? options.timeout
+          : (rc.timeout ?? options.timeout);
+
+      // ── Build SSL/SASL from CLI flags (override .klagrc) ───────
+      const auth = buildAuthOptions({
+        ssl: options.ssl || rc.ssl?.enabled,
+        sslCa: options.sslCa ?? rc.ssl?.caPath,
+        sslCert: options.sslCert ?? rc.ssl?.certPath,
+        sslKey: options.sslKey ?? rc.ssl?.keyPath,
+        saslMechanism: options.saslMechanism ?? rc.sasl?.mechanism,
+        saslUsername: options.saslUsername ?? rc.sasl?.username,
+        saslPassword: options.saslPassword ?? rc.sasl?.password,
+      });
+
       const kafkaOptions = {
-        broker: options.broker,
-        groupId: options.group,
-        intervalMs: options.interval,
-        timeoutMs: options.timeout,
+        broker,
+        groupId,
+        intervalMs,
+        timeoutMs,
+        ...auth,
       };
 
       // ── watch mode ─────────────────────────────────────────────
@@ -109,6 +174,29 @@ program
         console.error(
           chalk.gray(
             `   • Port accessibility: nc -zv ${options.broker.split(":")[0]} ${options.broker.split(":")[1]}`,
+          ),
+        );
+        console.error("");
+        process.exit(1);
+      }
+
+      // SASL auth failure
+      if (
+        message.includes("SASLAuthenticationFailed") ||
+        message.includes("Authentication failed") ||
+        message.includes("SASL")
+      ) {
+        console.error(chalk.red(`\n❌ SASL authentication failed\n`));
+        console.error(chalk.yellow("   Check the following:"));
+        console.error(
+          chalk.gray(`   • Mechanism: ${options.saslMechanism ?? "(none)"}`),
+        );
+        console.error(
+          chalk.gray(`   • Username:  ${options.saslUsername ?? "(none)"}`),
+        );
+        console.error(
+          chalk.gray(
+            `   • Password:  set via KLAG_SASL_PASSWORD or --sasl-password`,
           ),
         );
         console.error("");

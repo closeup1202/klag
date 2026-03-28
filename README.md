@@ -66,6 +66,48 @@ klag --broker localhost:9092 --group my-service --watch --interval 3000
 
 # JSON output (CI/pipeline integration)
 klag --broker localhost:9092 --group my-service --json
+
+# SSL (system CA trust)
+klag --broker kafka.prod:9092 --group my-service --ssl
+
+# SSL with custom certificates
+klag --broker kafka.prod:9092 --group my-service \
+  --ssl --ssl-ca /etc/kafka/ca.pem \
+  --ssl-cert /etc/kafka/client.crt --ssl-key /etc/kafka/client.key
+
+# SASL authentication (password via environment variable — recommended)
+KLAG_SASL_PASSWORD=secret klag --broker kafka.prod:9092 --group my-service \
+  --sasl-mechanism scram-sha-256 --sasl-username kafka-user
+
+# SSL + SASL combined
+KLAG_SASL_PASSWORD=secret klag --broker kafka.prod:9092 --group my-service \
+  --ssl --sasl-mechanism scram-sha-256 --sasl-username kafka-user
+```
+
+## Config file (.klagrc)
+
+Create `.klagrc` in the current directory or `~/.klagrc` to store default options.
+CLI arguments always take precedence over the config file.
+
+```json
+{
+  "broker": "kafka.prod.internal:9092",
+  "group": "my-service",
+  "interval": 3000,
+  "ssl": {
+    "enabled": true,
+    "caPath": "/etc/kafka/ca.pem"
+  },
+  "sasl": {
+    "mechanism": "scram-sha-256",
+    "username": "kafka-user"
+  }
+}
+```
+
+With this file in place, you only need:
+```bash
+KLAG_SASL_PASSWORD=secret klag
 ```
 
 ## Options
@@ -79,6 +121,13 @@ klag --broker localhost:9092 --group my-service --json
 | `-w, --watch` | Watch mode | `false` |
 | `--no-rate` | Skip rate sampling | `false` |
 | `--json` | JSON output | `false` |
+| `--ssl` | Enable SSL/TLS | `false` |
+| `--ssl-ca <path>` | CA certificate PEM file | - |
+| `--ssl-cert <path>` | Client certificate PEM file | - |
+| `--ssl-key <path>` | Client key PEM file | - |
+| `--sasl-mechanism <type>` | `plain`, `scram-sha-256`, `scram-sha-512` | - |
+| `--sasl-username <user>` | SASL username | - |
+| `--sasl-password <pass>` | SASL password (prefer `KLAG_SASL_PASSWORD` env var) | - |
 
 ## Detectable root causes
 
@@ -106,8 +155,9 @@ All consumption pauses during rebalancing, which can cause a temporary lag spike
 ## Roadmap
 
 - [x] v0.1.0 — lag collection, hot partition, producer burst, slow consumer, rebalancing detection, watch mode with lag trend (▲▼)
-- [ ] v0.2.0 — multi-group monitoring
-- [ ] v0.3.0 — Slack alerts, Prometheus export
+- [x] v0.2.0 — SSL/SASL authentication, `.klagrc` config file support
+- [ ] v0.3.0 — multi-group monitoring
+- [ ] v0.4.0 — Slack alerts, Prometheus export
 
 ## License
 

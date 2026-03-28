@@ -45,8 +45,8 @@ describe('detectHotPartition', () => {
 
     expect(results).toHaveLength(1)
     expect(results[0].type).toBe('HOT_PARTITION')
-    expect(results[0].details[0].partition).toBe(0)
-    expect(results[0].details[0].ratio).toBeCloseTo(0.8)
+    expect(results[0].details?.[0].partition).toBe(0)
+    expect(results[0].details?.[0].ratio).toBeCloseTo(0.8)
   })
 
   it('returns empty array when concentration is 79% (threshold boundary)', () => {

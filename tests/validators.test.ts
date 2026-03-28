@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest'
-import { parseInterval, parseBroker, parseTimeout } from '../src/cli/validators.js'
+import { existsSync } from 'node:fs'
+import { describe, expect, it, vi } from 'vitest'
+import { parseBroker, parseCertPath, parseInterval, parseSaslMechanism, parseTimeout } from '../src/cli/validators.js'
+
+vi.mock('node:fs', () => ({ existsSync: vi.fn() }))
 
 describe('parseInterval', () => {
   it('returns value as-is for valid number', () => {
@@ -67,5 +70,32 @@ describe('parseTimeout', () => {
   it('throws error if below 1000ms', () => {
     expect(() => parseTimeout('999')).toThrow('>= 1000ms')
     expect(() => parseTimeout('0')).toThrow('>= 1000ms')
+  })
+})
+
+describe('parseSaslMechanism', () => {
+  it('accepts valid mechanisms', () => {
+    expect(parseSaslMechanism('plain')).toBe('plain')
+    expect(parseSaslMechanism('scram-sha-256')).toBe('scram-sha-256')
+    expect(parseSaslMechanism('scram-sha-512')).toBe('scram-sha-512')
+  })
+
+  it('throws for unsupported mechanisms', () => {
+    expect(() => parseSaslMechanism('aws')).toThrow('must be one of')
+    expect(() => parseSaslMechanism('oauthbearer')).toThrow('must be one of')
+    expect(() => parseSaslMechanism('PLAIN')).toThrow('must be one of')
+    expect(() => parseSaslMechanism('')).toThrow('must be one of')
+  })
+})
+
+describe('parseCertPath', () => {
+  it('returns path when file exists', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    expect(parseCertPath('/etc/kafka/ca.pem')).toBe('/etc/kafka/ca.pem')
+  })
+
+  it('throws when file does not exist', () => {
+    vi.mocked(existsSync).mockReturnValue(false)
+    expect(() => parseCertPath('/nonexistent/ca.pem')).toThrow('not found')
   })
 })

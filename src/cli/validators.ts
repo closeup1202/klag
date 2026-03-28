@@ -1,4 +1,12 @@
+import { existsSync } from "node:fs";
 import { InvalidArgumentError } from "commander";
+import type { SaslMechanism } from "../types/index.js";
+
+const VALID_SASL_MECHANISMS: SaslMechanism[] = [
+  "plain",
+  "scram-sha-256",
+  "scram-sha-512",
+];
 
 export function parseInterval(value: string): number {
   const parsed = parseInt(value, 10);
@@ -30,4 +38,20 @@ export function parseTimeout(value: string): number {
     throw new InvalidArgumentError("--timeout must be a number >= 1000ms.");
   }
   return parsed;
+}
+
+export function parseSaslMechanism(value: string): SaslMechanism {
+  if (!VALID_SASL_MECHANISMS.includes(value as SaslMechanism)) {
+    throw new InvalidArgumentError(
+      `--sasl-mechanism must be one of: ${VALID_SASL_MECHANISMS.join(", ")}.`,
+    );
+  }
+  return value as SaslMechanism;
+}
+
+export function parseCertPath(value: string): string {
+  if (!existsSync(value)) {
+    throw new InvalidArgumentError(`Certificate file not found: ${value}`);
+  }
+  return value;
 }

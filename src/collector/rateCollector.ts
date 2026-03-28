@@ -1,9 +1,10 @@
-import { Kafka, logLevel } from "kafkajs";
+import type { Kafka } from "kafkajs";
 import type {
   KafkaOptions,
   PartitionRate,
   RateSnapshot,
 } from "../types/index.js";
+import { createKafkaClient } from "./kafkaFactory.js";
 
 /**
  * Calculate per-partition produce/consume rate via two samples
@@ -23,16 +24,7 @@ export async function collectRate(
   const intervalMs = options.intervalMs ?? 5000;
   const intervalSec = intervalMs / 1000;
 
-  const kafka = new Kafka({
-    clientId: "klag-rate",
-    brokers: [options.broker],
-    logLevel: logLevel.NOTHING,
-    requestTimeout: options.timeoutMs ?? 5000,
-    connectionTimeout: options.timeoutMs ?? 3000,
-    retry: {
-      retries: 1, // Added — only 1 retry (default is 5)
-    },
-  });
+  const kafka = createKafkaClient("klag-rate", options);
 
   const admin = kafka.admin();
 

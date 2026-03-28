@@ -1,12 +1,40 @@
 declare const __APP_VERSION__: string;
 export const VERSION = __APP_VERSION__;
 
+// ─── SSL/SASL auth types ──────────────────────────────────────────────────
+export type SaslMechanism = "plain" | "scram-sha-256" | "scram-sha-512";
+
+export interface SslOptions {
+  enabled: boolean;
+  caPath?: string;
+  certPath?: string;
+  keyPath?: string;
+}
+
+export interface SaslOptions {
+  mechanism: SaslMechanism;
+  username: string;
+  password?: string; // resolved at runtime from CLI arg or KLAG_SASL_PASSWORD env var
+}
+
 // ─── Kafka connection options ─────────────────────────────────────────────
 export interface KafkaOptions {
   broker: string;
   groupId: string;
   intervalMs?: number; // Sampling interval (default 5000ms)
   timeoutMs?: number;
+  ssl?: SslOptions;
+  sasl?: SaslOptions;
+}
+
+// ─── .klagrc file schema ──────────────────────────────────────────────────
+export interface RcFileSchema {
+  broker?: string;
+  group?: string;
+  interval?: number;
+  timeout?: number;
+  ssl?: Partial<SslOptions>;
+  sasl?: Partial<SaslOptions>;
 }
 
 // ─── Per-partition lag info ───────────────────────────────────────────────

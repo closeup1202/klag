@@ -1,9 +1,10 @@
-import { AssignerProtocol, Kafka, logLevel } from "kafkajs";
+import { AssignerProtocol } from "kafkajs";
 import type {
   KafkaOptions,
   LagSnapshot,
   PartitionLag,
 } from "../types/index.js";
+import { createKafkaClient } from "./kafkaFactory.js";
 
 /**
  * Collects per-partition lag for a consumer group using Kafka AdminClient
@@ -15,16 +16,7 @@ import type {
  *  4. lag = logEndOffset - committedOffset
  */
 export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
-  const kafka = new Kafka({
-    clientId: "klag",
-    brokers: [options.broker],
-    logLevel: logLevel.NOTHING, // Hide kafkajs internal logs in CLI
-    requestTimeout: options.timeoutMs ?? 5000,
-    connectionTimeout: options.timeoutMs ?? 3000,
-    retry: {
-      retries: 1, // Added — only 1 retry (default is 5)
-    },
-  });
+  const kafka = createKafkaClient("klag", options);
 
   const admin = kafka.admin();
 
@@ -54,7 +46,7 @@ export async function collectLag(options: KafkaOptions): Promise<LagSnapshot> {
         const decoded = AssignerProtocol.MemberAssignment.decode(
           member.memberAssignment,
         );
-        for (const [topic, partitions] of Object.entries(decoded?.assignment)) {
+        for (const [topic, partitions] of Object.entries(decoded?.assignment ?? {})) {
           if (!topicPartitionMap.has(topic)) {
             topicPartitionMap.set(topic, new Set());
           }
