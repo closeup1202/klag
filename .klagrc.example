@@ -1,0 +1,35 @@
+{
+  // Kafka broker address (host:port)
+  // CLI: --broker
+  "broker": "localhost:9092",
+
+  // Consumer group ID to monitor
+  // CLI: --group  (omit both this and --group to pick interactively)
+  "group": "my-service",
+
+  // Rate sampling interval in milliseconds (minimum 1000)
+  // CLI: --interval
+  "interval": 5000,
+
+  // Connection timeout in milliseconds (minimum 1000)
+  // CLI: --timeout
+  "timeout": 5000,
+
+  // SSL/TLS settings
+  // Set "enabled": true to use system CA trust (no cert files needed)
+  // Provide cert paths only when connecting to a cluster with custom certificates
+  "ssl": {
+    "enabled": true,
+    "caPath": "/etc/kafka/ca.pem",       // Path to CA certificate PEM file
+    "certPath": "/etc/kafka/client.crt", // Path to client certificate PEM file
+    "keyPath": "/etc/kafka/client.key"   // Path to client private key PEM file
+  },
+
+  // SASL authentication settings
+  // Supported mechanisms: "plain", "scram-sha-256", "scram-sha-512"
+  // Do NOT store the password here — use the KLAG_SASL_PASSWORD environment variable instead
+  "sasl": {
+    "mechanism": "scram-sha-256",
+    "username": "kafka-user"
+  }
+}

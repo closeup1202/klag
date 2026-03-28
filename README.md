@@ -131,19 +131,19 @@ KLAG_SASL_PASSWORD=secret klag
 
 ## Detectable root causes
 
-### `[HOT_PARTITION]`
+#### `HOT_PARTITION`
 When 80% or more of total lag is concentrated on a single partition.
 Occurs when producer key distribution is uneven (key skew).
 
-### `[PRODUCER_BURST]`
+#### `PRODUCER_BURST`
 When produce rate is at least 2x the consume rate (and the consumer is still running).
 Occurs when traffic spikes and the consumer cannot keep up.
 
-### `[SLOW_CONSUMER]`
+#### `SLOW_CONSUMER`
 When the produce rate is active but the consume rate has dropped to near zero.
 Occurs when the consumer process has stalled, crashed, or is blocked (e.g., long GC pause).
 
-### `[REBALANCING]`
+#### `REBALANCING`
 When the consumer group is in `PreparingRebalance` or `CompletingRebalance` state.
 All consumption pauses during rebalancing, which can cause a temporary lag spike.
 
@@ -154,7 +154,7 @@ All consumption pauses during rebalancing, which can cause a temporary lag spike
 
 ## Roadmap
 
-- [x] v0.1.0 — lag collection, hot partition, producer burst, slow consumer, rebalancing detection, watch mode with lag trend (▲▼)
+- [x] v0.1.0 — lag collection, hot partition, producer burst, slow consumer, rebalancing detection, watch mode with lag trend
 - [x] v0.2.0 — SSL/SASL authentication, `.klagrc` config file support
 - [x] v0.3.0 — time-to-drain severity classification, Drain column per partition
 - [ ] v0.4.0 — multi-group monitoring
