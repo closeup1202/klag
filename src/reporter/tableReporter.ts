@@ -2,7 +2,7 @@ import chalk from "chalk";
 import type { HorizontalAlignment } from "cli-table3";
 import Table from "cli-table3";
 import type { LagSnapshot, RateSnapshot, RcaResult } from "../types/index.js";
-import { classifyLag, VERSION } from "../types/index.js";
+import { classifyLag, formatDrainTime, VERSION } from "../types/index.js";
 
 const LEVEL_ICON: Record<string, string> = {
   OK: chalk.green("🟢 OK  "),
@@ -25,8 +25,8 @@ function formatTrend(lagDiff?: bigint): string {
   return chalk.green(`▼ ${lagDiff.toLocaleString()}`);
 }
 
-function groupStatus(totalLag: bigint): string {
-  const level = classifyLag(totalLag);
+function groupStatus(totalLag: bigint, totalConsumeRate?: number): string {
+  const level = classifyLag(totalLag, totalConsumeRate);
   if (level === "OK") return chalk.green("✅ OK");
   if (level === "WARN") return chalk.yellow("⚠️  WARNING");
   return chalk.red("🚨 CRITICAL");
@@ -67,13 +67,7 @@ export function printLagTable(
   );
   console.log("");
 
-  // ── Group State Summary ────────────────────────────────────────────
-  const status = groupStatus(totalLag);
-  const totalStr = chalk.bold(formatLag(totalLag));
-  console.log(`   Group Status : ${status}   Total Lag : ${totalStr}`);
-  console.log("");
-
-  // ── Table Per Partition ────────────────────────────────────────────
+  // ── Build rate lookup (needed for both summary and table) ──────────
   const hasRate = !!rateSnapshot && rateSnapshot.partitions.length > 0;
   const hasTrend = watchMode;
 
@@ -81,11 +75,27 @@ export function printLagTable(
     string,
     { produceRate: number; consumeRate: number }
   >();
+  let totalConsumeRate: number | undefined;
   if (hasRate && rateSnapshot) {
+    let sum = 0;
     for (const r of rateSnapshot.partitions) {
       rateMap.set(`${r.topic}-${r.partition}`, r);
+      sum += r.consumeRate;
     }
+    totalConsumeRate = sum;
   }
+
+  // ── Group State Summary ────────────────────────────────────────────
+  const status = groupStatus(totalLag, totalConsumeRate);
+  const totalStr = chalk.bold(formatLag(totalLag));
+  const drainStr =
+    totalConsumeRate !== undefined
+      ? `   Drain : ${chalk.cyan(formatDrainTime(totalLag, totalConsumeRate))}`
+      : "";
+  console.log(
+    `   Group Status : ${status}   Total Lag : ${totalStr}${drainStr}`,
+  );
+  console.log("");
 
   const head = [
     chalk.bold("Topic"),
@@ -96,7 +106,11 @@ export function printLagTable(
     ...(hasTrend ? [chalk.bold("Trend")] : []),
     chalk.bold("Status"),
     ...(hasRate
-      ? [chalk.bold("Produce Rate"), chalk.bold("Consume Rate")]
+      ? [
+          chalk.bold("Drain"),
+          chalk.bold("Produce Rate"),
+          chalk.bold("Consume Rate"),
+        ]
       : []),
   ];
 
@@ -110,7 +124,7 @@ export function printLagTable(
       "right",
       ...(hasTrend ? ["right"] : []),
       "center",
-      ...(hasRate ? ["right", "right"] : []),
+      ...(hasRate ? ["right", "right", "right"] : []),
     ] as HorizontalAlignment[],
     style: { head: [], border: ["grey"] },
   });
@@ -118,7 +132,8 @@ export function printLagTable(
   let lastTopic = "";
 
   for (const p of partitions) {
-    const level = classifyLag(p.lag);
+    const rateEntry = rateMap.get(`${p.topic}-${p.partition}`);
+    const level = classifyLag(p.lag, rateEntry?.consumeRate);
     const lagStr =
       level === "HIGH"
         ? chalk.red(formatLag(p.lag))
@@ -126,9 +141,13 @@ export function printLagTable(
           ? chalk.yellow(formatLag(p.lag))
           : chalk.green(formatLag(p.lag));
 
-    const rateEntry = rateMap.get(`${p.topic}-${p.partition}`);
     const rateColumns = hasRate
       ? [
+          chalk.cyan(
+            rateEntry !== undefined
+              ? formatDrainTime(p.lag, rateEntry.consumeRate)
+              : "—",
+          ),
           chalk.yellow(formatRate(rateEntry?.produceRate ?? 0)),
           chalk.cyan(formatRate(rateEntry?.consumeRate ?? 0)),
         ]

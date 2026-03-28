@@ -21,21 +21,21 @@ npx @closeup1202/klag --broker localhost:9092 --group my-service
 
 ## Output example
 ```
-⚡ klag 0.2.0
+⚡ klag 0.3.0
 
 🔍 Consumer Group: my-service
    Broker:         localhost:9092
-   Collected At:   2026-03-26 17:27:27 (Asia/Seoul)
+   Collected At:   2026-03-28 17:27:27 (Asia/Seoul)
 
-   Group Status : ⚠️  WARNING   Total Lag : 1,234
+   Group Status : 🚨 CRITICAL   Total Lag : 1,234   Drain : ∞
 
-┌────────┬───────────┬──────────────────┬────────────────┬───────┬─────────┬──────────────┬──────────────┐
-│ Topic  │ Partition │ Committed Offset │ Log-End Offset │  Lag  │ Status  │ Produce Rate │ Consume Rate │
-├────────┼───────────┼──────────────────┼────────────────┼───────┼─────────┼──────────────┼──────────────┤
-│ orders │         0 │            8,796 │         10,000 │ 1,204 │ 🔴 HIGH │  40.0 msg/s  │   0.0 msg/s  │
-│ orders │         1 │            9,988 │         10,000 │    12 │ 🟢 OK   │   0.0 msg/s  │   0.0 msg/s  │
-│ orders │         2 │            9,982 │         10,000 │    18 │ 🟢 OK   │   0.0 msg/s  │   0.0 msg/s  │
-└────────┴───────────┴──────────────────┴────────────────┴───────┴─────────┴──────────────┴──────────────┘
+┌────────┬───────────┬──────────────────┬────────────────┬───────┬─────────┬──────┬──────────────┬──────────────┐
+│ Topic  │ Partition │ Committed Offset │ Log-End Offset │  Lag  │ Status  │ Drain│ Produce Rate │ Consume Rate │
+├────────┼───────────┼──────────────────┼────────────────┼───────┼─────────┼──────┼──────────────┼──────────────┤
+│ orders │         0 │            8,796 │         10,000 │ 1,204 │ 🔴 HIGH │    ∞ │  40.0 msg/s  │   0.0 msg/s  │
+│ orders │         1 │            9,988 │         10,000 │    12 │ 🟢 OK   │    — │   0.0 msg/s  │   0.0 msg/s  │
+│ orders │         2 │            9,982 │         10,000 │    18 │ 🟢 OK   │    — │   0.0 msg/s  │   0.0 msg/s  │
+└────────┴───────────┴──────────────────┴────────────────┴───────┴─────────┴──────┴──────────────┴──────────────┘
 
 🔎 Root Cause Analysis
    [PRODUCER_BURST] orders
@@ -156,8 +156,9 @@ All consumption pauses during rebalancing, which can cause a temporary lag spike
 
 - [x] v0.1.0 — lag collection, hot partition, producer burst, slow consumer, rebalancing detection, watch mode with lag trend (▲▼)
 - [x] v0.2.0 — SSL/SASL authentication, `.klagrc` config file support
-- [ ] v0.3.0 — multi-group monitoring
-- [ ] v0.4.0 — Slack alerts, Prometheus export
+- [x] v0.3.0 — time-to-drain severity classification, Drain column per partition
+- [ ] v0.4.0 — multi-group monitoring
+- [ ] v0.5.0 — Slack alerts, Prometheus export
 
 ## License
 

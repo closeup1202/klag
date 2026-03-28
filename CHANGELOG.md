@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-28
+
+### Changed
+- Lag severity classification now uses **time-to-drain** when rate data is available:
+  - `OK` — current lag drainable in under 60 seconds at current consume rate
+  - `WARN` — 60s – 5 minutes
+  - `HIGH` — over 5 minutes, or consume rate is zero (consumer stuck)
+- Absolute fallback thresholds updated to more realistic values when rate data is unavailable:
+  - `OK` < 10,000 / `WARN` < 100,000 / `HIGH` ≥ 100,000 (was 100 / 1,000)
+
+### Added
+- **Drain** column in the partition table — shows estimated time to clear lag (e.g. `42s`, `2m30s`, `>1h`, `∞`)
+- Drain time displayed in the Group Status summary line alongside Total Lag
+
 ## [0.2.0] - 2026-03-28
 
 ### Added

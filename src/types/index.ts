@@ -75,10 +75,50 @@ export interface RateSnapshot {
 // ─── Lag severity level ───────────────────────────────────────────────────
 export type LagLevel = "OK" | "WARN" | "HIGH";
 
-export function classifyLag(lag: bigint): LagLevel {
-  if (lag < 100n) return "OK";
-  if (lag < 1000n) return "WARN";
+/**
+ * Classify lag severity.
+ *
+ * When consumeRate is provided, uses time-to-drain (seconds):
+ *   - consumeRate = 0  → HIGH (consumer stuck)
+ *   - drainSec < 60    → OK
+ *   - drainSec < 300   → WARN
+ *   - drainSec ≥ 300   → HIGH
+ *
+ * When consumeRate is undefined (no rate data), falls back to absolute thresholds:
+ *   - lag < 10,000     → OK
+ *   - lag < 100,000    → WARN
+ *   - lag ≥ 100,000    → HIGH
+ */
+export function classifyLag(lag: bigint, consumeRate?: number): LagLevel {
+  if (lag === 0n) return "OK";
+
+  if (consumeRate !== undefined) {
+    if (consumeRate === 0) return "HIGH";
+    const drainSec = Number(lag) / consumeRate;
+    if (drainSec < 60) return "OK";
+    if (drainSec < 300) return "WARN";
+    return "HIGH";
+  }
+
+  // Fallback: absolute thresholds when rate info is unavailable
+  if (lag < 10_000n) return "OK";
+  if (lag < 100_000n) return "WARN";
   return "HIGH";
+}
+
+/**
+ * Format estimated time to drain the lag at the given consume rate.
+ * Returns "—" for zero lag, "∞" for a stuck consumer.
+ */
+export function formatDrainTime(lag: bigint, consumeRate: number): string {
+  if (lag === 0n) return "—";
+  if (consumeRate === 0) return "∞";
+  const sec = Math.ceil(Number(lag) / consumeRate);
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (sec < 3600) return s > 0 ? `${m}m${s}s` : `${m}m`;
+  return `>${Math.floor(sec / 3600)}h`;
 }
 
 // ─── RCA analysis result ──────────────────────────────────────────────────
