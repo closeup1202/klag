@@ -68,7 +68,9 @@ export function detectOffsetNotMoving(
 
     if (topicLag === 0n) continue;
 
-    const partitionList = rates.stuckPartitions.sort((a, b) => a - b).join(", ");
+    const partitionList = rates.stuckPartitions
+      .sort((a, b) => a - b)
+      .join(", ");
     const partitionWord =
       rates.stuckPartitions.length === 1 ? "partition" : "partitions";
 
