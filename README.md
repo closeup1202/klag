@@ -21,7 +21,7 @@ npx @closeup1202/klag --broker localhost:9092 --group my-service
 
 ## Output example
 ```
-⚡ klag 0.3.0
+⚡ klag 0.4.0
 
 🔍 Consumer Group: my-service
    Broker:         localhost:9092
@@ -147,6 +147,10 @@ Occurs when the consumer process has stalled, crashed, or is blocked (e.g., long
 When the consumer group is in `PreparingRebalance` or `CompletingRebalance` state.
 All consumption pauses during rebalancing, which can cause a temporary lag spike.
 
+#### `OFFSET_NOT_MOVING`
+When the committed offset has not moved between samples while lag remains non-zero and the consumer group is Stable.
+Indicates the consumer is alive but failing to commit — caused by auto-commit being disabled with manual commits skipped, a processing loop that is stuck, or a crash-loop between message processing and offset commit.
+
 ## Requirements
 
 - Node.js >= 18
@@ -158,7 +162,7 @@ All consumption pauses during rebalancing, which can cause a temporary lag spike
 - [x] v0.2.0 — SSL/SASL authentication, `.klagrc` config file support
 - [x] v0.3.0 — time-to-drain severity classification, Drain column per partition
 - [x] v0.3.1 — interactive consumer group picker
-- [ ] v0.4.0 — `OFFSET_NOT_MOVING` detector (offset commit stall detection)
+- [x] v0.4.0 — `OFFSET_NOT_MOVING` detector (offset commit stall detection)
 - [ ] v0.5.0 — Slack alerts, Prometheus export
 
 ## License

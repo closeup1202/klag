@@ -127,6 +127,7 @@ export type RcaType =
   | "PRODUCER_BURST"
   | "SLOW_CONSUMER"
   | "REBALANCING"
+  | "OFFSET_NOT_MOVING"
   | "NONE";
 
 export interface RcaResult {
