@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-03-30
+
+### Added
+- `OFFSET_NOT_MOVING` detector — identifies consumer groups that are Stable but have made no commit progress while lag remains non-zero
+  - Triggers when: `consumeRate < 0.1 msg/s` AND `produceRate < 1.0 msg/s` AND `lag ≥ 5` AND `groupState === "Stable"`
+  - Mutually exclusive with `SLOW_CONSUMER` (which handles the active-producer case) and `REBALANCING`
+  - Reports the specific stuck partition numbers and total lag per topic
+  - Suggestion covers: auto-commit disabled with manual commits skipped, processing loop stuck, crash-loop between processing and commit
+
 ## [0.3.1] - 2026-03-29
 
 ### Added
