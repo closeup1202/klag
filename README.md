@@ -162,7 +162,7 @@ Indicates the consumer is alive but failing to commit — caused by auto-commit 
 - [x] v0.2.0 — SSL/SASL authentication, `.klagrc` config file support
 - [x] v0.3.0 — time-to-drain severity classification, Drain column per partition
 - [x] v0.3.1 — interactive consumer group picker
-- [x] v0.4.0 — `OFFSET_NOT_MOVING` detector (offset commit stall detection)
+- [x] v0.4.1 — `OFFSET_NOT_MOVING` detector (offset commit stall detection)
 - [ ] v0.5.0 — Slack alerts, Prometheus export
 
 ## License
