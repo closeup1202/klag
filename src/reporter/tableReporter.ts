@@ -26,6 +26,7 @@ function formatTrend(lagDiff?: bigint): string {
 }
 
 function groupStatus(totalLag: bigint, totalConsumeRate?: number): string {
+  if (totalConsumeRate === undefined) return chalk.gray("—");
   const level = classifyLag(totalLag, totalConsumeRate);
   if (level === "OK") return chalk.green("✅ OK");
   if (level === "WARN") return chalk.yellow("⚠️  WARNING");
@@ -104,7 +105,7 @@ export function printLagTable(
     chalk.bold("Log-End Offset"),
     chalk.bold("Lag"),
     ...(hasTrend ? [chalk.bold("Trend")] : []),
-    chalk.bold("Status"),
+    ...(hasRate ? [chalk.bold("Status")] : []),
     ...(hasRate
       ? [
           chalk.bold("Drain"),
@@ -123,8 +124,7 @@ export function printLagTable(
       "right",
       "right",
       ...(hasTrend ? ["right"] : []),
-      "center",
-      ...(hasRate ? ["right", "right", "right"] : []),
+      ...(hasRate ? ["center", "right", "right", "right"] : []),
     ] as HorizontalAlignment[],
     style: { head: [], border: ["grey"] },
   });
@@ -163,7 +163,7 @@ export function printLagTable(
       formatLag(p.logEndOffset),
       lagStr,
       ...(hasTrend ? [formatTrend(p.lagDiff)] : []),
-      LEVEL_ICON[level],
+      ...(hasRate ? [LEVEL_ICON[level]] : []),
       ...rateColumns,
     ]);
   }

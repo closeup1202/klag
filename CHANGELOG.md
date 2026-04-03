@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-03
+
+### Changed
+- `--no-rate` mode no longer shows a **Status** column or group-level status judgment
+  - Previously, when rate sampling was skipped, severity was classified using absolute lag thresholds (OK < 10,000 / WARN < 100,000 / HIGH ≥ 100,000), which caused all partitions to appear `🟢 OK` and the group to show `✅ OK` regardless of actual lag
+  - Without consume rate data it is impossible to determine whether lag is draining or stuck, so any threshold-based verdict is misleading
+  - The partition table now omits the Status column entirely in `--no-rate` mode
+  - The Group Status summary line now shows `—` instead of a false OK/WARNING/CRITICAL label
+
 ## [0.4.1] - 2026-03-30
 
 ### Added

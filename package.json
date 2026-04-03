@@ -1,6 +1,6 @@
 {
   "name": "@closeup1202/klag",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Kafka consumer lag root cause analyzer",
   "type": "module",
   "bin": {

@@ -21,7 +21,7 @@ npx @closeup1202/klag --broker localhost:9092 --group my-service
 
 ## Output example
 ```
-⚡ klag 0.4.1
+⚡ klag 0.5.0
 
 🔍 Consumer Group: my-service
    Broker:         localhost:9092
@@ -163,7 +163,8 @@ Indicates the consumer is alive but failing to commit — caused by auto-commit 
 - [x] v0.3.0 — time-to-drain severity classification, Drain column per partition
 - [x] v0.3.1 — interactive consumer group picker
 - [x] v0.4.1 — `OFFSET_NOT_MOVING` detector (offset commit stall detection)
-- [ ] v0.5.0 — Slack alerts, Prometheus export
+- [x] v0.5.0 — honest `--no-rate` mode: Status column removed when rate data is unavailable
+- [ ] v0.6.0 — Slack alerts, Prometheus export
 
 ## License
 
