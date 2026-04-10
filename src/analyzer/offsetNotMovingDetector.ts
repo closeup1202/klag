@@ -62,12 +62,15 @@ export function detectOffsetNotMoving(
     // Check produce rate only for the stuck partitions themselves.
     // Using topic-level totalProduce would suppress this detector whenever a healthy
     // partition in the same topic has active production, hiding truly stuck partitions.
-    const stuckProduceRate = rates.stuckPartitions.reduce((sum, partitionId) => {
-      const rp = ratePartitions.find(
-        (r) => r.topic === topic && r.partition === partitionId,
-      );
-      return sum + (rp?.produceRate ?? 0);
-    }, 0);
+    const stuckProduceRate = rates.stuckPartitions.reduce(
+      (sum, partitionId) => {
+        const rp = ratePartitions.find(
+          (r) => r.topic === topic && r.partition === partitionId,
+        );
+        return sum + (rp?.produceRate ?? 0);
+      },
+      0,
+    );
 
     // If the stuck partitions themselves have active produce, SLOW_CONSUMER handles them
     if (stuckProduceRate >= MIN_PRODUCE_RATE) continue;
