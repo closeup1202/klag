@@ -59,8 +59,18 @@ export function detectOffsetNotMoving(
   for (const [topic, rates] of topicRateMap) {
     if (rates.stuckPartitions.length === 0) continue;
 
-    // If produce rate is active, SLOW_CONSUMER handles it — skip to avoid duplication
-    if (rates.totalProduce >= MIN_PRODUCE_RATE) continue;
+    // Check produce rate only for the stuck partitions themselves.
+    // Using topic-level totalProduce would suppress this detector whenever a healthy
+    // partition in the same topic has active production, hiding truly stuck partitions.
+    const stuckProduceRate = rates.stuckPartitions.reduce((sum, partitionId) => {
+      const rp = ratePartitions.find(
+        (r) => r.topic === topic && r.partition === partitionId,
+      );
+      return sum + (rp?.produceRate ?? 0);
+    }, 0);
+
+    // If the stuck partitions themselves have active produce, SLOW_CONSUMER handles them
+    if (stuckProduceRate >= MIN_PRODUCE_RATE) continue;
 
     const topicLag = snapshot.partitions
       .filter((p) => p.topic === topic)
@@ -92,12 +102,13 @@ export function detectOffsetNotMoving(
 Decision logic summary:
 
 groupState !== "Stable"                        →  skip (REBALANCING handles it)
-consumeRate >= 0.1                             →  offset is moving, no issue
-lag < MIN_STUCK_LAG (5)                        →  too small to matter
-produceRate >= 1.0 (active producer)           →  SLOW_CONSUMER handles it
+consumeRate >= 0.1 (per partition)             →  offset is moving, no issue
+lag < MIN_STUCK_LAG (5) (per partition)        →  too small to matter
+stuckPartitionProduceRate >= 1.0               →  SLOW_CONSUMER handles those partitions
 all conditions met                             →  OFFSET_NOT_MOVING ✅
 
-Mutual exclusivity:
-  SLOW_CONSUMER:       produceRate >= 1.0 AND consumeRate < 0.1
-  OFFSET_NOT_MOVING:   produceRate <  1.0 AND consumeRate < 0.1
+Mutual exclusivity is checked at partition level (not topic level) to avoid
+missing stuck partitions that share a topic with healthy partitions:
+  SLOW_CONSUMER:       stuckPartition.produceRate >= 1.0 AND consumeRate < 0.1
+  OFFSET_NOT_MOVING:   stuckPartition.produceRate <  1.0 AND consumeRate < 0.1
 */

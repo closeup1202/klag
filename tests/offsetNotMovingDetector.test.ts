@@ -142,6 +142,48 @@ describe("detectOffsetNotMoving", () => {
     expect(results.map((r) => r.topic)).toContain("payments");
   });
 
+  it("still detects OFFSET_NOT_MOVING when a healthy partition in the same topic has active produce", () => {
+    // Regression test: topic-level totalProduce was used previously, which caused
+    // a healthy partition's produce rate to suppress detection of a truly stuck partition.
+    const snapshot: LagSnapshot = {
+      groupId: "test-group",
+      broker: "localhost:9092",
+      collectedAt: new Date(),
+      groupState: "Stable",
+      partitions: [
+        {
+          topic: "orders",
+          partition: 0,
+          logEndOffset: 10100n,
+          committedOffset: 10000n,
+          lag: 100n,
+        },
+        {
+          topic: "orders",
+          partition: 1,
+          logEndOffset: 20000n,
+          committedOffset: 20000n,
+          lag: 0n, // no lag (healthy)
+        },
+      ],
+      totalLag: 100n,
+    };
+    const rate: RateSnapshot = {
+      intervalMs: 5000,
+      partitions: [
+        { topic: "orders", partition: 0, produceRate: 0, consumeRate: 0 },   // stuck
+        { topic: "orders", partition: 1, produceRate: 5.0, consumeRate: 5.0 }, // healthy
+      ],
+    };
+    const results = detectOffsetNotMoving(snapshot, rate);
+
+    // Partition 0 is stuck; partition 1 is healthy.
+    // topic totalProduce = 5.0 would have suppressed the result under the old logic.
+    expect(results).toHaveLength(1);
+    expect(results[0].type).toBe("OFFSET_NOT_MOVING");
+    expect(results[0].description).toContain("[0]");
+  });
+
   it("only flags stuck partitions, not partitions where offset is moving", () => {
     const snapshot: LagSnapshot = {
       groupId: "test-group",
