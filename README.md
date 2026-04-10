@@ -21,7 +21,7 @@ npx @closeup1202/klag --broker localhost:9092 --group my-service
 
 ## Output example
 ```
-⚡ klag 0.5.0
+⚡ klag 0.5.1
 
 🔍 Consumer Group: my-service
    Broker:         localhost:9092
