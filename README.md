@@ -164,6 +164,7 @@ Indicates the consumer is alive but failing to commit — caused by auto-commit 
 - [x] v0.3.1 — interactive consumer group picker
 - [x] v0.4.1 — `OFFSET_NOT_MOVING` detector (offset commit stall detection)
 - [x] v0.5.0 — honest `--no-rate` mode: Status column removed when rate data is unavailable
+- [x] v0.5.1 — fix `OFFSET_NOT_MOVING` false negative when stuck partition shares topic with healthy partitions
 - [ ] v0.6.0 — Slack alerts, Prometheus export
 
 ## License

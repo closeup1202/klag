@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-04-10
+
+### Fixed
+- `OFFSET_NOT_MOVING` was not detected when a stuck partition shared a topic with healthy partitions
+  - The produce rate check used the topic-level aggregate (`totalProduce`), so a healthy partition's produce activity could suppress detection of a truly stuck partition in the same topic
+  - Now checks produce rate only for the stuck partitions themselves — a stuck partition with no produce activity fires `OFFSET_NOT_MOVING` regardless of what other partitions in the topic are doing
+
 ## [0.5.0] - 2026-04-03
 
 ### Changed
